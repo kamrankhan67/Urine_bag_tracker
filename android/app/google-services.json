@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "10737593836",
+    "project_id": "urinebags",
+    "storage_bucket": "urinebags.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:10737593836:android:4b3e9ac986ea368f30a4c9",
+        "android_client_info": {
+          "package_name": "com.example.urine_bag"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBV68owG7AKDwcLdjapqEgH-Q7CJzYoCEs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
