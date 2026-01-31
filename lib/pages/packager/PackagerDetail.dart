@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:urine_bag/commons/addButton.dart';
-import 'package:urine_bag/pages/packager/packagerDetailView.dart';
+import 'package:urine_bag/pages/packager/packagerDeliverView.dart';
+import 'package:urine_bag/pages/packager/packagerReceivedView.dart';
 
 class PackagerDetail extends StatefulWidget {
   const PackagerDetail({super.key});
@@ -185,49 +186,8 @@ class _PackagerDetailState extends State<PackagerDetail> {
                 ),
               ),
               SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    margin: EdgeInsets.only(left: 20),
-                    width: 150,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: Colors.grey,
-
-                      borderRadius: BorderRadius.circular(35),
-                    ),
-                    child: Center(
-                      child: Text(
-                        'Deliver',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 17,
-                        ),
-                      ),
-                    ),
-                  ),
-                  Container(
-                    margin: EdgeInsets.only(left: 20),
-                    width: 150,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: Colors.blueGrey,
-
-                      borderRadius: BorderRadius.circular(35),
-                    ),
-                    child: Center(
-                      child: Text(
-                        'Recieved',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 17,
-                        ),
-                      ),
-                    ),
-                  ),
+              Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  
                 ],
               ),
               Container(
@@ -243,15 +203,26 @@ class _PackagerDetailState extends State<PackagerDetail> {
                 decoration: BoxDecoration(color: Colors.grey),
                 child: Column(
                   children: [
-                    Text(
-                      "Date : 12-01-2026",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
+                    Container(
+                      margin: EdgeInsets.only(left: 20),
+                      width: 150,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: Colors.blueGrey,
+
+                        borderRadius: BorderRadius.circular(35),
+                      ),
+                      child: Center(
+                        child: Text(
+                          'Delivered',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 17,
+                          ),
+                        ),
                       ),
                     ),
-                    SizedBox(height: 10),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -367,9 +338,7 @@ class _PackagerDetailState extends State<PackagerDetail> {
                   ],
                 ),
               ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
+              
                   GestureDetector(
                     onTap: () {
                       Navigator.push(
@@ -381,7 +350,8 @@ class _PackagerDetailState extends State<PackagerDetail> {
                     },
                     child: Container(
                       height: 50,
-                      width: MediaQuery.of(context).size.width / 2.3,
+                      margin: EdgeInsets.symmetric(horizontal: 20),
+                      width: MediaQuery.of(context).size.width ,
                       decoration: BoxDecoration(color: Colors.green),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -401,168 +371,7 @@ class _PackagerDetailState extends State<PackagerDetail> {
                     ),
                   ),
                   SizedBox(width: 5),
-                  GestureDetector(
-                    onTap: () {
-                      showModalBottomSheet(
-                        context: context,
-                        isScrollControlled: true,
-                        shape: const RoundedRectangleBorder(
-                          borderRadius: BorderRadius.vertical(
-                            top: Radius.circular(20),
-                          ),
-                        ),
-                        builder: (context) {
-                          return SingleChildScrollView(
-                            physics: BouncingScrollPhysics(),
-
-                            child: Padding(
-                              padding: EdgeInsets.only(
-                                bottom: MediaQuery.of(
-                                  context,
-                                ).viewInsets.bottom,
-                              ),
-                              child: Container(
-                                padding: const EdgeInsets.all(16),
-                                margin: EdgeInsets.symmetric(horizontal: 20),
-                                height:
-                                    MediaQuery.of(context).size.height * 1.21,
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    Center(
-                                      child: Container(
-                                        width: 40,
-                                        height: 5,
-                                        margin: const EdgeInsets.only(
-                                          bottom: 16,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: Colors.grey[400],
-                                          borderRadius: BorderRadius.circular(
-                                            10,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-
-                                    const Text(
-                                      "Edit Deliver ",
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-
-                                    const SizedBox(height: 16),
-                                    
-                                    SizedBox(height: 15),
-                                    TextField(
-                                      decoration: InputDecoration(
-                                        labelText: "Bags",
-                                        border: OutlineInputBorder(),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 16),
-
-                                    TextField(
-                                      decoration: InputDecoration(
-                                        labelText: "Sm Box",
-                                        border: OutlineInputBorder(),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 16),
-
-                                    TextField(
-                                      decoration: InputDecoration(
-                                        labelText: "Sap Paper",
-                                        border: OutlineInputBorder(),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 16),
-
-                                    TextField(
-                                      decoration: InputDecoration(
-                                        labelText: "Seal",
-                                        border: OutlineInputBorder(),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 16),
-
-                                    TextField(
-                                      decoration: InputDecoration(
-                                        labelText: "Tissue",
-                                        border: OutlineInputBorder(),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 16),
-
-                                    TextField(
-                                      decoration: InputDecoration(
-                                        labelText: "GLoves",
-                                        border: OutlineInputBorder(),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 16),
-
-                                    TextField(
-                                      decoration: InputDecoration(
-                                        labelText: "Cartton",
-                                        border: OutlineInputBorder(),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 16),
-
-                                    TextField(
-                                      decoration: InputDecoration(
-                                        labelText: "Bopp Pouch",
-                                        border: OutlineInputBorder(),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 16),
-
-                                    TextField(
-                                      decoration: InputDecoration(
-                                        labelText: "Sticker",
-                                        border: OutlineInputBorder(),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 16),
-
-                                    const Spacer(),
-                                    AddButton(fn: () => Navigator.pop(context)),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      );
-                    },
-                    child: Container(
-                      height: 50,
-                      width: MediaQuery.of(context).size.width / 2.3,
-                      decoration: BoxDecoration(
-                        color: const Color.fromARGB(255, 195, 211, 16),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.edit, color: Colors.white),
-                          SizedBox(width: 10),
-                          Text(
-                            "Edit",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+                  
 
               SizedBox(height: 20),
 
@@ -579,12 +388,24 @@ class _PackagerDetailState extends State<PackagerDetail> {
                 decoration: BoxDecoration(color: Colors.grey),
                 child: Column(
                   children: [
-                    Text(
-                      "Date : 22-01-2026",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
+                    Container(
+                      margin: EdgeInsets.only(left: 20),
+                      width: 150,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: Colors.blueGrey,
+
+                        borderRadius: BorderRadius.circular(35),
+                      ),
+                      child: Center(
+                        child: Text(
+                          'Recieved',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 17,
+                          ),
+                        ),
                       ),
                     ),
                     SizedBox(height: 10),
@@ -612,25 +433,24 @@ class _PackagerDetailState extends State<PackagerDetail> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    Text(
-                      "Paid",
-                      style: TextStyle(
-                        fontSize: 18,
-                        color: const Color.fromARGB(255, 255, 0, 0),
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    
                   ],
                 ),
               ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
+              
                   GestureDetector(
-                    onTap: (){},
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => PackagerRecievedView(),
+                        ),
+                      );
+                    },
                     child: Container(
                       height: 50,
-                      width: MediaQuery.of(context).size.width / 2.3,
+                      margin: EdgeInsets.symmetric(horizontal: 20),
+                      width: MediaQuery.of(context).size.width ,
                       decoration: BoxDecoration(color: Colors.green),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -650,125 +470,7 @@ class _PackagerDetailState extends State<PackagerDetail> {
                     ),
                   ),
                   SizedBox(width: 5),
-                  GestureDetector(
-                    onTap: () {
-                      showModalBottomSheet(
-                        context: context,
-                        isScrollControlled: true,
-                        shape: const RoundedRectangleBorder(
-                          borderRadius: BorderRadius.vertical(
-                            top: Radius.circular(20),
-                          ),
-                        ),
-                        builder: (context) {
-                          return SingleChildScrollView(
-                            physics: BouncingScrollPhysics(),
-
-                            child: Padding(
-                              padding: EdgeInsets.only(
-                                bottom: MediaQuery.of(
-                                  context,
-                                ).viewInsets.bottom,
-                              ),
-                              child: Container(
-                                padding: const EdgeInsets.all(16),
-                                margin: EdgeInsets.symmetric(horizontal: 20),
-                                height:
-                                    MediaQuery.of(context).size.height * 0.65,
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    Center(
-                                      child: Container(
-                                        width: 40,
-                                        height: 5,
-                                        margin: const EdgeInsets.only(
-                                          bottom: 16,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: Colors.grey[400],
-                                          borderRadius: BorderRadius.circular(
-                                            10,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-
-                                    const Text(
-                                      "Edit Recieved ",
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-
-                                    const SizedBox(height: 16),
-                                    
-                                    SizedBox(height: 15),
-                                    TextField(
-                                      decoration: InputDecoration(
-                                        labelText: "Date",
-                                        border: OutlineInputBorder(),
-                                      ),
-                                      keyboardType: TextInputType.datetime,
-                                    ),
-                                    const SizedBox(height: 16),
-
-                                    TextField(
-                                      decoration: InputDecoration(
-                                        labelText: "Carttons",
-                                        border: OutlineInputBorder(),
-                                      ),
-                                      keyboardType: TextInputType.number,
-                                    ),
-                                    const SizedBox(height: 16),
-                                    TextField(
-                                      decoration: InputDecoration(
-                                        labelText: "Status",
-                                        hintText: "Paid / UnPaid",
-                                        border: OutlineInputBorder(),
-                                      ),
-                                      keyboardType: TextInputType.text,
-                                    ),
-                                    const SizedBox(height: 16),
-
-                                    const SizedBox(height: 16),
-
-                                    const Spacer(),
-                                    AddButton(fn: () => Navigator.pop(context)),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      );
-                    },
-                    child: Container(
-                      height: 50,
-                      width: MediaQuery.of(context).size.width / 2.3,
-                      decoration: BoxDecoration(
-                        color: const Color.fromARGB(255, 195, 211, 16),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.edit, color: Colors.white),
-                          SizedBox(width: 10),
-                          Text(
-                            "Edit",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+                  
               SizedBox(height: 20),
             ],
           ),
