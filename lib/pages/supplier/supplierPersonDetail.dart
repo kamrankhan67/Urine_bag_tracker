@@ -3,8 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:urine_bag/commons/addButton.dart';
 
 class SupplierPersonDetail extends StatefulWidget {
-  const SupplierPersonDetail({super.key, required this.name});
-  final String name;
+  const SupplierPersonDetail({
+    super.key,
+    required this.personName,
+    required this.supplyItem,
+  });
+  final String personName;
+  final String supplyItem;
 
   @override
   State<SupplierPersonDetail> createState() => _SupplierPersonDetailState();
@@ -17,6 +22,7 @@ class _SupplierPersonDetailState extends State<SupplierPersonDetail> {
     final TextEditingController _itemController = TextEditingController();
     final TextEditingController _dateController = TextEditingController();
     final TextEditingController _quantityController = TextEditingController();
+
     return Scaffold(
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.black,
@@ -51,7 +57,6 @@ class _SupplierPersonDetailState extends State<SupplierPersonDetail> {
                           ),
                         ),
                       ),
-
                       const Text(
                         "Add Supply",
                         style: TextStyle(
@@ -59,19 +64,16 @@ class _SupplierPersonDetailState extends State<SupplierPersonDetail> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-
                       const SizedBox(height: 16),
-
                       TextField(
                         controller: _dateController,
                         decoration: InputDecoration(
                           labelText: "Date",
                           border: OutlineInputBorder(),
                         ),
+                        keyboardType: TextInputType.datetime,
                       ),
-
                       const SizedBox(height: 12),
-
                       TextField(
                         controller: _quantityController,
                         decoration: InputDecoration(
@@ -81,7 +83,6 @@ class _SupplierPersonDetailState extends State<SupplierPersonDetail> {
                         keyboardType: TextInputType.number,
                       ),
                       const SizedBox(height: 12),
-
                       TextField(
                         controller: _itemController,
                         decoration: InputDecoration(
@@ -91,7 +92,6 @@ class _SupplierPersonDetailState extends State<SupplierPersonDetail> {
                         keyboardType: TextInputType.text,
                       ),
                       const SizedBox(height: 12),
-
                       TextField(
                         controller: _balController,
                         decoration: InputDecoration(
@@ -101,15 +101,14 @@ class _SupplierPersonDetailState extends State<SupplierPersonDetail> {
                         keyboardType: TextInputType.number,
                       ),
                       const SizedBox(height: 12),
-
                       const Spacer(),
-
                       AddButton(
                         fn: () => _addSupplyDetail(
+                          widget.personName,
                           _dateController.text,
-                          _quantityController.text,
+                          int.parse(_quantityController.text),
                           _itemController.text,
-                          _balController.text,
+                          int.parse(_balController.text),
                           context,
                         ),
                       ),
@@ -124,113 +123,209 @@ class _SupplierPersonDetailState extends State<SupplierPersonDetail> {
       ),
       backgroundColor: const Color.fromRGBO(232, 226, 219, 1),
       body: SafeArea(
-        child: Column(
-          children: [
-            Container(
-              //height: 70,
-              padding: EdgeInsets.only(left: 20, top: 10, bottom: 10),
-              width: MediaQuery.of(context).size.width,
-              decoration: BoxDecoration(
-                color: Color.fromRGBO(26, 50, 99, 1),
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(10),
-                  bottomRight: Radius.circular(10),
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              Container(
+                padding: EdgeInsets.only(left: 20, top: 10, bottom: 10),
+                width: MediaQuery.of(context).size.width,
+                decoration: BoxDecoration(
+                  color: Color.fromRGBO(26, 50, 99, 1),
+                  borderRadius: BorderRadius.only(
+                    bottomLeft: Radius.circular(10),
+                    bottomRight: Radius.circular(10),
+                  ),
+                ),
+                child: StreamBuilder<DocumentSnapshot>(
+                  stream: FirebaseFirestore.instance
+                      .collection("SuplierDetail")
+                      .doc(widget.personName)
+                      .snapshots(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    } else if (snapshot.hasError) {
+                      return const Center(
+                        child: Text("Error loading supplier info"),
+                      );
+                    } else if (!snapshot.hasData || !snapshot.data!.exists) {
+                      return const Center(child: Text("Supplier not found"));
+                    }
+
+                    var supplier = snapshot.data!;
+                    return Column(
+                      children: [
+                        Center(
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              IconButton(
+                                onPressed: () {
+                                  Navigator.pop(context);
+                                },
+                                icon: Icon(
+                                  Icons.arrow_back_rounded,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              Text(
+                                supplier.id,
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 23,
+                                ),
+                              ),
+                              SizedBox(
+                                width: MediaQuery.of(context).size.width / 6,
+                              ),
+                            ],
+                          ),
+                        ),
+                        Text(
+                          'Location : ${supplier['location']}',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                        Text(
+                          'Phone No : ${supplier['phone']}',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      ],
+                    );
+                  },
                 ),
               ),
-              child: Column(
-                children: [
-                  Center(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        IconButton(
-                          onPressed: () {
-                            Navigator.pop(context);
-                          },
-                          icon: Icon(
-                            Icons.arrow_back_rounded,
-                            color: Colors.white,
+              StreamBuilder(
+                stream: FirebaseFirestore.instance
+                    .collection("SuplierDetail")
+                    .doc(widget.personName)
+                    .collection("Bills")
+                    .snapshots(),
+                builder:
+                    (
+                      BuildContext context,
+                      AsyncSnapshot<QuerySnapshot> snapshot,
+                    ) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(
+                          child: CircularProgressIndicator(
+                            color: Colors.blueAccent,
                           ),
-                        ),
-
-                        Text(
-                          'Rasheed',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 23,
-                          ),
-                        ),
-                        SizedBox(width: MediaQuery.of(context).size.width / 6),
-                      ],
-                    ),
-                  ),
-                  Text(
-                    'Location : Lahore,Kot abdul malik',
-                    style: TextStyle(color: Colors.white),
-                  ),
-                  Text(
-                    'Phone No : 03238967453',
-                    style: TextStyle(color: Colors.white),
-                  ),
-                ],
+                        );
+                      } else if (snapshot.hasError) {
+                        return const Center(
+                          child: Text("Error loading Supplier Detail"),
+                        );
+                      } else if (!snapshot.hasData ||
+                          snapshot.data!.docs.isEmpty) {
+                        return const Center(child: Text("No Purchase found"));
+                      }
+                      return ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: snapshot.data!.docs.length,
+                        itemBuilder: (context, index) {
+                          DocumentSnapshot ds = snapshot.data!.docs[index];
+                          return Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            width: double.infinity,
+                            margin: EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 10,
+                            ),
+                            padding: EdgeInsets.all(20),
+                            child: Column(
+                              children: [
+                                Text(
+                                  'Date : ${ds['date']}',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                                SizedBox(height: 10),
+                                Row(
+                                  children: [
+                                    Text('Quantity '),
+                                    Spacer(),
+                                    Text(ds['quantity'].toString()),
+                                  ],
+                                ),
+                                Row(
+                                  children: [
+                                    Text('Item '),
+                                    Spacer(),
+                                    Text(ds['item']),
+                                  ],
+                                ),
+                                Row(
+                                  children: [
+                                    Text('Per Piece Price '),
+                                    Spacer(),
+                                    Text(
+                                      "${ds['balance'] / ds['quantity']}",
+                                    ),
+                                  ],
+                                ),
+                                Text(
+                                  'Balance: ${ds['balance']}',
+                                  style: TextStyle(
+                                    color: Colors.red,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 17,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      );
+                    },
               ),
-            ),
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              width: double.infinity,
-
-              margin: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              padding: EdgeInsets.all(20),
-              child: Column(
-                children: [
-                  Text(
-                    'Date : 12-02-2026',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  SizedBox(height: 10),
-                  Row(children: [Text('Quantity '), Spacer(), Text('300')]),
-                  Row(children: [Text('Item '), Spacer(), Text('Foam')]),
-                  Row(
-                    children: [Text('Per Peice Price '), Spacer(), Text('5')],
-                  ),
-                  Text(
-                    'Balance : 30,000',
-                    style: TextStyle(
-                      color: Colors.red,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 17,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
   void _addSupplyDetail(
+    String person,
     String date,
-    String quantity,
+    int quantity,
     String item,
-    String bal,
+    int bal,
     BuildContext context,
   ) async {
     await FirebaseFirestore.instance
-        .collection("Supplier")
-        .doc("Foam")
-        .collection(widget.name)
+        .collection("SuplierDetail")
+        .doc(widget.personName)
+        .collection("Bills")
         .doc()
         .set({
           "date": date,
           "quantity": quantity,
           "item": item,
           "balance": bal,
+        });
+
+    await FirebaseFirestore.instance
+        .collection("Inventory")
+        .doc(widget.supplyItem)
+        .collection("Ledger")
+        .doc()
+        .set({
+          "Date": date,
+          "Quantity": "+$quantity",
+          "Color": "Green",
+          "Description": person,
+        });
+    await FirebaseFirestore.instance
+        .collection("Inventory")
+        .doc(widget.supplyItem)
+        .update({
+          "quantity": 
+          FieldValue.increment(quantity),
         });
     Navigator.pop(context);
   }

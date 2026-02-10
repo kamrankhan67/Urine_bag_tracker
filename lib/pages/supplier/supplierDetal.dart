@@ -4,7 +4,8 @@ import 'package:urine_bag/commons/addButton.dart';
 import 'package:urine_bag/pages/supplier/supplierPersonDetail.dart';
 
 class SupplierDetail extends StatefulWidget {
-  const SupplierDetail({super.key});
+  const SupplierDetail({super.key, required this.supplyItem});
+  final String supplyItem;
 
   @override
   State<SupplierDetail> createState() => _SupplierDetailState();
@@ -66,7 +67,9 @@ class _SupplierDetailState extends State<SupplierDetail> {
                         decoration: InputDecoration(
                           labelText: "Name",
                           border: OutlineInputBorder(),
+                          
                         ),
+                        keyboardType: TextInputType.name,
                       ),
 
                       const SizedBox(height: 12),
@@ -77,7 +80,7 @@ class _SupplierDetailState extends State<SupplierDetail> {
                           labelText: "Location",
                           border: OutlineInputBorder(),
                         ),
-                        keyboardType: TextInputType.number,
+                        keyboardType: TextInputType.streetAddress,
                       ),
                       const SizedBox(height: 12),
 
@@ -87,7 +90,7 @@ class _SupplierDetailState extends State<SupplierDetail> {
                           labelText: "Phone No",
                           border: OutlineInputBorder(),
                         ),
-                        keyboardType: TextInputType.text,
+                        keyboardType: TextInputType.phone,
                       ),
                       const SizedBox(height: 12),
                       const Spacer(),
@@ -135,11 +138,11 @@ class _SupplierDetailState extends State<SupplierDetail> {
                     ),
 
                     Text(
-                      'Foam Supplier',
+                      '${widget.supplyItem} Supplier',
                       style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
-                        fontSize: 23,
+                        fontSize: 21,
                       ),
                     ),
                     SizedBox(width: MediaQuery.of(context).size.width / 6),
@@ -148,26 +151,54 @@ class _SupplierDetailState extends State<SupplierDetail> {
               ),
             ),
             SizedBox(height: 10),
-            GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => SupplierPersonDetail(name:"Rasheed"),
-                  ),
+
+            StreamBuilder(
+              stream: FirebaseFirestore.instance
+                  .collection("SuplierDetail")
+                  .where(
+                    "item",
+                    isEqualTo: widget.supplyItem,
+                  ) 
+                  .snapshots(),
+              builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                    child: CircularProgressIndicator(color: Colors.lightBlue),
+                  );
+                } else if (snapshot.hasError) {
+                  return const Center(child: Text("Error loading Suppliers"));
+                } else if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return const Center(child: Text("No Supplier found"));
+                }
+                return ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: snapshot.data!.docs.length,
+                  itemBuilder: (context, index) {
+                    DocumentSnapshot ds = snapshot.data!.docs[index];
+                    return GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                SupplierPersonDetail(personName: ds.id,supplyItem: widget.supplyItem,),
+                          ),
+                        );
+                      },
+                      child: _itemSupplier(ds.id,),
+                    );
+                  },
                 );
               },
-              child: _foamSupplier('Rasheed'),
             ),
-            _foamSupplier('Naveed'),
-            _foamSupplier('Gulzar'),
           ],
         ),
       ),
     );
   }
 
-  Widget _foamSupplier(String text) {
+  Widget _itemSupplier(String text) {
     return Container(
       decoration: BoxDecoration(color: Colors.blueGrey),
       width: double.infinity,
@@ -190,14 +221,14 @@ class _SupplierDetailState extends State<SupplierDetail> {
     String name,
     String loc,
     String ph,
+
     BuildContext context,
   ) async {
-    await FirebaseFirestore.instance
-        .collection("Supplier")
-        .doc("Foam")
-        .collection(name)
-        .doc("$name Detail")
-        .set({"location": loc, "phone": ph});
+    await FirebaseFirestore.instance.collection("SuplierDetail").doc(name).set({
+      "location": loc,
+      "phone": ph,
+      "item": widget.supplyItem,
+    });
     Navigator.pop(context);
   }
 }

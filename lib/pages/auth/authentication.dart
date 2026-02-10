@@ -49,26 +49,26 @@ class Authentication extends StatelessWidget {
               SizedBox(height: 10),
               GestureDetector(
                 onTap: () {
-                  if ((_authName == _nameController.text||_nameController.text=="Admin") &&
-                      (_authPass == _passwordController.text)) {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => Notebook()),
-                    );
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text("Welcome Back !"),
-                        backgroundColor: const Color.fromARGB(255, 14, 114, 8),
-                      ),
-                    );
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text("Invalid Credentials Try Again"),
-                        backgroundColor: const Color.fromARGB(255, 179, 59, 50),
-                      ),
-                    );
-                  }
+                  // if ((_authName == _nameController.text||_nameController.text=="Admin") &&
+                  //     (_authPass == _passwordController.text)) {
+                  //   Navigator.push(
+                  //     context,
+                  //     MaterialPageRoute(builder: (context) => Notebook()),
+                  //   );
+                  //   ScaffoldMessenger.of(context).showSnackBar(
+                  //     SnackBar(
+                  //       content: Text("Welcome Back !"),
+                  //       backgroundColor: const Color.fromARGB(255, 14, 114, 8),
+                  //     ),
+                  //   );
+                  // } else {
+                  //   ScaffoldMessenger.of(context).showSnackBar(
+                  //     SnackBar(
+                  //       content: Text("Invalid Credentials Try Again"),
+                  //       backgroundColor: const Color.fromARGB(255, 179, 59, 50),
+                  //     ),
+                  //   );
+                  // }
                 },
                 child: _continueButton(),
               ),

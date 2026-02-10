@@ -1,12 +1,26 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 class InventoryDetail extends StatelessWidget {
-  const InventoryDetail({super.key});
+  const InventoryDetail({super.key, required this.item});
+  final DocumentSnapshot<Object?> item;
 
   @override
   Widget build(BuildContext context) {
+
+    Color getRowColor(String color) {
+  switch (color) {
+    case "Green":
+      return Colors.green;
+    case "Red":
+      return Colors.red;
+    default:
+      return Colors.grey;
+  }
+}
+
+    
     return Scaffold(
-      
       backgroundColor: const Color.fromRGBO(232, 226, 219, 1),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -26,46 +40,50 @@ class InventoryDetail extends StatelessWidget {
                 ),
                 child: Center(
                   child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    IconButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
-                      icon: Icon(
-                        Icons.arrow_back_rounded,
-                        color: Colors.white,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      IconButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                        },
+                        icon: Icon(
+                          Icons.arrow_back_rounded,
+                          color: Colors.white,
+                        ),
                       ),
-                    ),
-          
-                    Text(
-                      'Foam',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 23,
+
+                      Text(
+                        item.id,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 23,
+                        ),
                       ),
-                    ),
-                    SizedBox(width: MediaQuery.of(context).size.width / 6),
-                  ],
-                ),
+                      SizedBox(width: MediaQuery.of(context).size.width / 6),
+                    ],
+                  ),
                 ),
               ),
               SizedBox(height: 20),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _inventoryDetailContainer("Quantity", "2000", context),
+                  _inventoryDetailContainer(
+                    "Quantity",
+                    item['quantity'].toString(),
+                    context,
+                  ),
                   _inventoryDetailContainer(
                     "Total Value",
-                    "200,000",
+                    item["value"].toString(),
                     context,
                   ),
                 ],
               ),
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 30),
-                margin: EdgeInsets.only(top: 10,right: 20,left: 20),
+                margin: EdgeInsets.only(top: 10, right: 20, left: 20),
                 width: double.infinity,
                 height: 50,
                 decoration: BoxDecoration(
@@ -84,7 +102,7 @@ class InventoryDetail extends StatelessWidget {
                     ),
                     Spacer(),
                     Text(
-                      '20',
+                      item["expected cartton"].toString(),
                       style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
@@ -122,38 +140,90 @@ class InventoryDetail extends StatelessWidget {
                         ),
                       ],
                     ),
-                    TableRow(
-                      decoration: BoxDecoration(
-                        color: const Color.fromARGB(255, 11, 112, 28),
-                      ),
-                      children: [
-                        Center(child: Text('1-01-2026',style: TextStyle(color: Colors.white),)),
-                        Center(
-                          child: Text(
-                            '+1000',
-                            style: TextStyle(color: Colors.white,fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                        Center(child: Text('manzoor se liye',style: TextStyle(color: Colors.white),)),
-                      ],
-                    ),
-                    TableRow(
-                      decoration: BoxDecoration(
-                        color: const Color.fromARGB(255, 179, 28, 28),
-                      ),
-                      children: [
-                        Center(child: Text('12-01-2026',style: TextStyle(color: Colors.white),)),
-                        Center(
-                          child: Text(
-                            '-400',
-                            style: TextStyle(color: Colors.white,fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                        Center(child: Text('Zahid sab ko diye',style: TextStyle(color: Colors.white),)),
-                      ],
-                    ),
                   ],
                 ),
+              ),
+              StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection("Inventory")
+                    .doc(item.id)
+                    .collection("Ledger")
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  
+
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(
+                      child: CircularProgressIndicator(color: Colors.lightBlue),
+                    );
+                  }
+                  if (snapshot.hasError) {
+                    return const Center(child: Text("Error loading records"));
+                  }
+                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                    return const Center(child: Text("No Record found"));
+                  }
+
+                  return ListView.builder(
+                    physics: const NeverScrollableScrollPhysics(),
+                    shrinkWrap: true,
+                    itemCount: snapshot.data!.docs.length,
+                    itemBuilder: (context, index) {
+                      final ds = snapshot.data!.docs[index];
+                      final Color rowColor = getRowColor(ds["Color"]);
+
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                        child: Table(
+                          border: TableBorder.all(width: 1),
+                          children: [
+                            TableRow(
+                              decoration:  BoxDecoration(
+                                color:rowColor,
+                              ),
+                              children: [
+                                Center(
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(8.0),
+                                    child: Text(
+                                      "${ds["Date"]}",
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                Center(
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(8.0),
+                                    child: Text(
+                                      "${ds["Quantity"]}",
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                Center(
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(8.0),
+                                    child: Text(
+                                      "${ds["Description"]}",
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  );
+                },
               ),
             ],
           ),

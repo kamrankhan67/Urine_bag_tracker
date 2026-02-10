@@ -1,25 +1,23 @@
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:urine_bag/commons/addButton.dart';
 import 'package:urine_bag/pages/supplier/supplierDetal.dart';
-
 class Supplier extends StatefulWidget {
   const Supplier({super.key});
 
   @override
   State<Supplier> createState() => _SupplierState();
 }
-
 class _SupplierState extends State<Supplier> {
   @override
   Widget build(BuildContext context) {
-   final TextEditingController _addSupplierController = TextEditingController();
+    final TextEditingController _addSupplierController =
+        TextEditingController();
     return Scaffold(
       backgroundColor: const Color.fromRGBO(232, 226, 219, 1),
       body: SafeArea(
         child: SingleChildScrollView(
-          physics: BouncingScrollPhysics(),
+          
           child: Column(
             children: [
               Container(
@@ -56,32 +54,55 @@ class _SupplierState extends State<Supplier> {
                         ),
                       ),
                       SizedBox(width: MediaQuery.of(context).size.width / 6),
+                      
                     ],
                   ),
                 ),
               ),
               SizedBox(height: 10),
-              GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => SupplierDetail()),
+
+              StreamBuilder(
+                stream: FirebaseFirestore.instance
+                    .collection("Supplier")
+                    .snapshots(),
+                builder: (context, AsyncSnapshot snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(
+                      child: CircularProgressIndicator(color: Colors.lightBlue),
+                    );
+                  } else if (snapshot.hasError) {
+                    print("Error in StreamBuilder: ${snapshot.error}");
+                    return const Center(child: Text("Error loading supplies"));
+                  } else if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                    return const Center(child: Text("No Supplies found"));
+                  }
+                  return ListView.builder(
+                    shrinkWrap: true,
+                    physics:NeverScrollableScrollPhysics(),
+                    itemCount: snapshot.data!.docs.length,
+                    itemBuilder: (context, index) {
+                      DocumentSnapshot ds = snapshot.data!.docs[index];
+                      return GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => SupplierDetail(supplyItem: ds["name"],),
+                            ),
+                          );
+                        },
+                        child: _supplierContainer(ds["name"], context),
+                      );
+                    },
                   );
                 },
-                child: _supplierContainer('Foam', context),
               ),
-              _supplierContainer('Bags', context),
-              _supplierContainer('Tissue', context),
-              _supplierContainer('Gloves', context),
-              _supplierContainer('Sap Paper', context),
-              _supplierContainer('Sm Box', context),
-              _supplierContainer('Carton', context),
-              _supplierContainer('Seal', context),
-              _supplierContainer('Sticker', context),
+              SizedBox(height: 20,)
             ],
           ),
         ),
       ),
+
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
@@ -135,7 +156,10 @@ class _SupplierState extends State<Supplier> {
                       ),
 
                       const Spacer(),
-                      AddButton(fn: ()=>_addSupply(_addSupplierController.text, context)),
+                      AddButton(
+                        fn: () =>
+                            _addSupply(_addSupplierController.text, context),
+                      ),
                     ],
                   ),
                 ),
@@ -176,7 +200,26 @@ class _SupplierState extends State<Supplier> {
   }
 
   void _addSupply(String text, BuildContext context) async {
-  await FirebaseFirestore.instance.collection("Supplier").doc(text).set({});
-    Navigator.pop(context);
+    if (text.isNotEmpty) {
+      await FirebaseFirestore.instance.collection("Supplier").doc(text).set({
+        "name": text,
+      });
+       await FirebaseFirestore.instance.collection("Inventory").doc(text).set({
+        "name": text,
+        "quantity":0,
+        "expected cartton":0,
+        "value":0,
+        
+      });
+      Navigator.pop(context);
+    } else {
+      
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text("Supplier name cannot be empty."),
+      ));
+    }
   }
 }
+
+
+

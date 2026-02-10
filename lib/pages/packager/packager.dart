@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:urine_bag/commons/addButton.dart';
 import 'package:urine_bag/pages/packager/PackagerDetail.dart';
@@ -10,10 +11,11 @@ class Packager extends StatefulWidget {
 }
 
 class _PackagerState extends State<Packager> {
+  TextEditingController _nameController = TextEditingController();
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color.fromRGBO(232, 226, 219,1),
+      backgroundColor: const Color.fromRGBO(232, 226, 219, 1),
       body: SafeArea(
         child: Column(
           children: [
@@ -22,7 +24,7 @@ class _PackagerState extends State<Packager> {
               padding: EdgeInsets.only(left: 20, top: 10, bottom: 10),
               width: MediaQuery.of(context).size.width,
               decoration: BoxDecoration(
-                color: Color.fromRGBO(26, 50, 99,1),
+                color: Color.fromRGBO(26, 50, 99, 1),
                 borderRadius: BorderRadius.only(
                   bottomLeft: Radius.circular(10),
                   bottomRight: Radius.circular(10),
@@ -30,63 +32,77 @@ class _PackagerState extends State<Packager> {
               ),
               child: Center(
                 child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      IconButton(
-                        onPressed: () {
-                          Navigator.pop(context);
-                        },
-                        icon: Icon(
-                          Icons.arrow_back_rounded,
-                          color: Colors.white,
-                        ),
-                      ),
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    IconButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
+                      icon: Icon(Icons.arrow_back_rounded, color: Colors.white),
+                    ),
 
-                      Text(
-                        'Packaging',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 23,
-                        ),
+                    Text(
+                      'Packaging',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 23,
                       ),
-                      SizedBox(width: MediaQuery.of(context).size.width / 6),
-                    ],
-                  ),
+                    ),
+                    SizedBox(width: MediaQuery.of(context).size.width / 6),
+                  ],
+                ),
               ),
             ),
-            Padding(
-              padding: EdgeInsetsGeometry.symmetric(
-                horizontal: 20,
-                vertical: 10,
-              ),
-              child: _PackagingContainer(context, 'Zahid', () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => PackagerDetail()),
+
+            StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection("Packaging")
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                    child: CircularProgressIndicator(color: Colors.lightBlue),
+                  );
+                }
+                if (snapshot.hasError) {
+                  return const Center(child: Text("Error loading records"));
+                }
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return const Center(child: Text("No Record found"));
+                }
+
+                return ListView.builder(
+                  physics: const NeverScrollableScrollPhysics(),
+                  shrinkWrap: true,
+                  itemCount: snapshot.data!.docs.length,
+                  itemBuilder: (context, index) {
+                    final ds = snapshot.data!.docs[index];
+
+                    return Padding(
+                      padding: EdgeInsetsGeometry.symmetric(
+                        horizontal: 20,
+                        vertical: 10,
+                      ),
+                      child: _PackagingContainer(context, ds.id, () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => PackagerDetail(packagerData: ds,),
+                          ),
+                        );
+                      }),
+                    );
+                  },
                 );
-              }),
-            ),
-            Padding(
-              padding: EdgeInsetsGeometry.symmetric(
-                horizontal: 20,
-                vertical: 10,
-              ),
-              child: _PackagingContainer(context, 'Kashif', () {}),
-            ),
-            Padding(
-              padding: EdgeInsetsGeometry.symmetric(
-                horizontal: 20,
-                vertical: 10,
-              ),
-              child: _PackagingContainer(context, 'Ayyan', () {}),
+              },
             ),
           ],
         ),
       ),
-       floatingActionButton: FloatingActionButton(
-      backgroundColor: Colors.black,
-      foregroundColor: Colors.white,
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
         onPressed: () {
           showModalBottomSheet(
             context: context,
@@ -102,7 +118,7 @@ class _PackagerState extends State<Packager> {
                 child: Container(
                   padding: const EdgeInsets.all(16),
                   margin: EdgeInsets.symmetric(horizontal: 20),
-                  height: MediaQuery.of(context).size.height*0.4,
+                  height: MediaQuery.of(context).size.height * 0.4,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
@@ -129,6 +145,7 @@ class _PackagerState extends State<Packager> {
                       const SizedBox(height: 16),
 
                       TextField(
+                        controller: _nameController,
                         decoration: InputDecoration(
                           labelText: "Name",
                           border: OutlineInputBorder(),
@@ -136,7 +153,7 @@ class _PackagerState extends State<Packager> {
                       ),
 
                       const Spacer(),
-                      AddButton(fn:() => Navigator.pop(context),),
+                      AddButton(fn: () => _addpackager(_nameController.text)),
                     ],
                   ),
                 ),
@@ -158,7 +175,7 @@ class _PackagerState extends State<Packager> {
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: const Color.fromRGBO(84, 119, 146,1),
+          color: const Color.fromRGBO(84, 119, 146, 1),
           borderRadius: BorderRadius.circular(20),
         ),
         height: 60,
@@ -175,5 +192,27 @@ class _PackagerState extends State<Packager> {
         ),
       ),
     );
+  }
+
+  void _addpackager(String name) async {
+    await FirebaseFirestore.instance.collection("Packaging").doc(name).set({
+      "Gloves": 0,
+      "Bags": 0,
+      "Sm_Box": 0,
+      "Sap_Paper": 0,
+      "Seal": 0,
+      "Tissue": 0,
+      "Tape": 0,
+      "Carton": 0,
+      "Bopp_Pouch": 0,
+      "Sticker": 0,
+      "Delivered_Expected_carton":0,
+      "Received_carton": 0,
+      "Received_box": 0,
+      "Received_peices": 0,
+      
+      
+    });
+    Navigator.pop(context);
   }
 }

@@ -1,16 +1,96 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:urine_bag/commons/addButton.dart';
 import 'package:urine_bag/commons/home_button.dart';
 import 'package:urine_bag/pages/auth/authentication.dart';
 import 'package:urine_bag/pages/inventory/inventory.dart';
+import 'package:urine_bag/pages/packager/PackagerDetail.dart';
 import 'package:urine_bag/pages/packager/packager.dart';
 import 'package:urine_bag/pages/supplier/supplier.dart';
 
-class Home extends StatelessWidget {
+class Home extends StatefulWidget {
   const Home({super.key});
 
   @override
+  State<Home> createState() => _HomeState();
+}
+
+class _HomeState extends State<Home> {
+  final TextEditingController _bagController = TextEditingController();
+  final TextEditingController _dateController = TextEditingController();
+  final TextEditingController _glovesController = TextEditingController();
+  final TextEditingController _smBoxController = TextEditingController();
+  final TextEditingController _sapPaperController = TextEditingController();
+  final TextEditingController _sealController = TextEditingController();
+  final TextEditingController _tissueController = TextEditingController();
+  final TextEditingController _cartonController = TextEditingController();
+  final TextEditingController _boppPouchController = TextEditingController();
+  final TextEditingController _stickerController = TextEditingController();
+  final TextEditingController _tapeController = TextEditingController();
+  final TextEditingController _recievedCartonController =
+      TextEditingController();
+  final TextEditingController _recievedDateController = TextEditingController();
+  final TextEditingController _statusController = TextEditingController();
+  QuerySnapshot<Map<String, dynamic>>? PackagerListQuery;
+  // List<DocumentSnapshot<Map<String, dynamic>>> PackagerList = [];
+  String? selectedItem;
+  String? receivedSelectedItem;
+
+  // Fetch packager data from Firebase
+  // void _getPackager() async {
+  //   PackagerListQuery = await FirebaseFirestore.instance
+  //       .collection("Packaging")
+  //       .get();
+
+  //   setState(() {
+  //     PackagerList = PackagerListQuery!.docs;
+  //     if (PackagerList.isNotEmpty) {
+  //       // Set default selected item to the first packager
+  //       selectedItem = PackagerList[0].id;
+  //     } else {
+  //       selectedItem = "No Packager found";
+  //     }
+  //   });
+  List<String> PackagerList = []; // List to store document IDs
+
+  @override
+  void initState() {
+    super.initState();
+    getDocumentIds();
+  }
+
+  Future<void> getDocumentIds() async {
+    try {
+      // Get a reference to the Firestore collection
+      CollectionReference collectionRef = FirebaseFirestore.instance.collection(
+        'Packaging',
+      );
+
+      // Get all documents from the collection
+      QuerySnapshot querySnapshot = await collectionRef.get();
+
+      // Extract document IDs and add them to the list
+      List<String> packagerIds = [];
+      for (var doc in querySnapshot.docs) {
+        packagerIds.add(doc.id); // Add each document ID to the list
+      }
+
+      setState(() {
+        PackagerList = packagerIds; // Set the packager list
+        if (PackagerList.isNotEmpty && selectedItem == null) {
+          selectedItem = PackagerList.first;
+        }
+      });
+    } catch (e) {
+      print("Error getting document IDs: $e");
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    print("RecievedSelectedItem$receivedSelectedItem");
+    print("Selected item $selectedItem");
+
     return Scaffold(
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.black,
@@ -52,7 +132,10 @@ class Home extends StatelessWidget {
                 width: double.infinity,
                 height: 200,
 
-                child: Image.asset('assets/images/logo_png.png',fit: BoxFit.fill,),
+                child: Image.asset(
+                  'assets/images/logo_png.png',
+                  fit: BoxFit.fill,
+                ),
               ),
 
               Row(
@@ -103,7 +186,7 @@ class Home extends StatelessWidget {
                                 padding: const EdgeInsets.all(16),
                                 margin: EdgeInsets.symmetric(horizontal: 20),
                                 height:
-                                    MediaQuery.of(context).size.height * 1.21,
+                                    MediaQuery.of(context).size.height * 1.40,
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.center,
                                   children: [
@@ -132,102 +215,196 @@ class Home extends StatelessWidget {
                                     ),
 
                                     const SizedBox(height: 16),
-                                    DropdownMenu(
-                                      width: double.infinity,
-                                      hintText: "Select Packager",
-                                      textStyle: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                      dropdownMenuEntries: [
-                                        DropdownMenuEntry(
-                                          value: 1,
-                                          label: "Zahid",
-                                        ),
-                                        DropdownMenuEntry(
-                                          value: 2,
-                                          label: "Kashif",
-                                        ),
-                                        DropdownMenuEntry(
-                                          value: 3,
-                                          label: "Ayyan",
-                                        ),
-                                      ],
-                                    ),
+                                    PackagerList.isEmpty
+                                        ? Center(
+                                            child: Text("No Packager found"),
+                                          )
+                                        : DropdownButton<String>(
+                                            value:
+                                                PackagerList.contains(
+                                                  selectedItem,
+                                                )
+                                                ? selectedItem
+                                                : null,
+                                            hint: Text("Select Packager"),
+                                            isExpanded: true,
+                                            onChanged: (String? value) {
+                                              setState(() {
+                                                selectedItem = value;
+                                              });
+                                            },
+                                            items: PackagerList.map(
+                                              (element) =>
+                                                  DropdownMenuItem<String>(
+                                                    value: element,
+                                                    child: Text(element),
+                                                  ),
+                                            ).toList(),
+                                          ),
                                     SizedBox(height: 15),
                                     TextField(
+                                      controller: _dateController,
+                                      decoration: InputDecoration(
+                                        labelText: "Date",
+                                        border: OutlineInputBorder(),
+                                      ),
+                                      keyboardType: TextInputType.datetime,
+                                    ),
+                                    const SizedBox(height: 16),
+                                    TextField(
+                                      controller: _bagController,
                                       decoration: InputDecoration(
                                         labelText: "Bags",
                                         border: OutlineInputBorder(),
                                       ),
+                                      keyboardType: TextInputType.number,
                                     ),
                                     const SizedBox(height: 16),
 
                                     TextField(
+                                      controller: _smBoxController,
                                       decoration: InputDecoration(
                                         labelText: "Sm Box",
                                         border: OutlineInputBorder(),
                                       ),
+                                      keyboardType: TextInputType.number,
                                     ),
                                     const SizedBox(height: 16),
 
                                     TextField(
+                                      controller: _sapPaperController,
                                       decoration: InputDecoration(
                                         labelText: "Sap Paper",
                                         border: OutlineInputBorder(),
                                       ),
+                                      keyboardType: TextInputType.number,
                                     ),
                                     const SizedBox(height: 16),
 
                                     TextField(
+                                      controller: _sealController,
                                       decoration: InputDecoration(
                                         labelText: "Seal",
                                         border: OutlineInputBorder(),
                                       ),
+                                      keyboardType: TextInputType.number,
                                     ),
                                     const SizedBox(height: 16),
 
                                     TextField(
+                                      controller: _tissueController,
                                       decoration: InputDecoration(
                                         labelText: "Tissue",
                                         border: OutlineInputBorder(),
                                       ),
+                                      keyboardType: TextInputType.number,
                                     ),
                                     const SizedBox(height: 16),
 
                                     TextField(
+                                      controller: _glovesController,
                                       decoration: InputDecoration(
                                         labelText: "GLoves",
                                         border: OutlineInputBorder(),
                                       ),
+                                      keyboardType: TextInputType.number,
                                     ),
                                     const SizedBox(height: 16),
 
                                     TextField(
+                                      controller: _cartonController,
                                       decoration: InputDecoration(
                                         labelText: "Cartton",
                                         border: OutlineInputBorder(),
                                       ),
+                                      keyboardType: TextInputType.number,
                                     ),
                                     const SizedBox(height: 16),
 
                                     TextField(
+                                      controller: _boppPouchController,
                                       decoration: InputDecoration(
                                         labelText: "Bopp Pouch",
                                         border: OutlineInputBorder(),
                                       ),
+                                      keyboardType: TextInputType.number,
                                     ),
                                     const SizedBox(height: 16),
 
                                     TextField(
+                                      controller: _stickerController,
                                       decoration: InputDecoration(
                                         labelText: "Sticker",
                                         border: OutlineInputBorder(),
                                       ),
+                                      keyboardType: TextInputType.number,
+                                    ),
+                                    const SizedBox(height: 16),
+                                    TextField(
+                                      controller: _tapeController,
+                                      decoration: InputDecoration(
+                                        labelText: "Tape",
+                                        border: OutlineInputBorder(),
+                                      ),
+                                      keyboardType: TextInputType.number,
                                     ),
                                     const SizedBox(height: 16),
 
                                     const Spacer(),
-                                    AddButton(fn: () => Navigator.pop(context)),
+                                    AddButton(
+                                      fn: () {
+                                        if (selectedItem == null) {
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            const SnackBar(
+                                              content: Text(
+                                                "Please select a packager",
+                                              ),
+                                            ),
+                                          );
+                                          return;
+                                        }
+
+                                        _sendItem(
+                                          _dateController.text,
+                                          selectedItem!,
+                                          int.tryParse(
+                                                _glovesController.text,
+                                              ) ??
+                                              0,
+                                          int.tryParse(_bagController.text) ??
+                                              0,
+                                          int.tryParse(_smBoxController.text) ??
+                                              0,
+                                          int.tryParse(
+                                                _sapPaperController.text,
+                                              ) ??
+                                              0,
+                                          int.tryParse(_sealController.text) ??
+                                              0,
+                                          int.tryParse(
+                                                _tissueController.text,
+                                              ) ??
+                                              0,
+                                          int.tryParse(_tapeController.text) ??
+                                              0,
+                                          int.tryParse(
+                                                _cartonController.text,
+                                              ) ??
+                                              0,
+                                          int.tryParse(
+                                                _boppPouchController.text,
+                                              ) ??
+                                              0,
+                                          int.tryParse(
+                                                _stickerController.text,
+                                              ) ??
+                                              0,
+                                          context,
+                                        );
+                                      },
+                                    ),
                                   ],
                                 ),
                               ),
@@ -305,29 +482,31 @@ class Home extends StatelessWidget {
                                     ),
 
                                     const SizedBox(height: 16),
-                                    DropdownMenu(
-                                      width: double.infinity,
-                                      hintText: "Select Packager",
-                                      textStyle: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                      dropdownMenuEntries: [
-                                        DropdownMenuEntry(
-                                          value: 1,
-                                          label: "Zahid",
-                                        ),
-                                        DropdownMenuEntry(
-                                          value: 2,
-                                          label: "Kashif",
-                                        ),
-                                        DropdownMenuEntry(
-                                          value: 3,
-                                          label: "Ayyan",
-                                        ),
-                                      ],
-                                    ),
+                                    PackagerList.isEmpty
+                                        ? Center(
+                                            child: Text("No Packager found"),
+                                          )
+                                        : DropdownButton<String>(
+                                            value: selectedItem,
+                                            hint: Text("Select Packager"),
+                                            isExpanded: true,
+                                            onChanged: (String? value) {
+                                              setState(() {
+                                                receivedSelectedItem = value;
+                                              });
+                                            },
+                                            items: PackagerList.map(
+                                              (element) =>
+                                                  DropdownMenuItem<String>(
+                                                    value: element,
+                                                    child: Text(element),
+                                                  ),
+                                            ).toList(),
+                                          ),
+
                                     SizedBox(height: 15),
                                     TextField(
+                                      controller: _recievedDateController,
                                       decoration: InputDecoration(
                                         labelText: "Date",
                                         border: OutlineInputBorder(),
@@ -337,14 +516,16 @@ class Home extends StatelessWidget {
                                     const SizedBox(height: 16),
 
                                     TextField(
+                                      controller: _recievedCartonController,
                                       decoration: InputDecoration(
-                                        labelText: "Carttons",
+                                        labelText: "Cartons",
                                         border: OutlineInputBorder(),
                                       ),
                                       keyboardType: TextInputType.number,
                                     ),
                                     const SizedBox(height: 16),
                                     TextField(
+                                      controller: _statusController,
                                       decoration: InputDecoration(
                                         labelText: "Status",
                                         hintText: "Paid / UnPaid",
@@ -353,11 +534,37 @@ class Home extends StatelessWidget {
                                       keyboardType: TextInputType.text,
                                     ),
                                     const SizedBox(height: 16),
-                                    
+
                                     const SizedBox(height: 16),
 
                                     const Spacer(),
-                                    AddButton(fn: () => Navigator.pop(context)),
+                                    AddButton(
+                                      fn: () {
+                                        if (selectedItem == null) {
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            const SnackBar(
+                                              content: Text(
+                                                "Please select a packager",
+                                              ),
+                                            ),
+                                          );
+                                          return;
+                                        }
+
+                                        _recievedItem(
+                                          _recievedDateController.text,
+                                          receivedSelectedItem!,
+                                          int.tryParse(
+                                                _recievedCartonController.text,
+                                              ) ??
+                                              0,
+                                          _statusController.text,
+                                          context,
+                                        );
+                                      },
+                                    ),
                                   ],
                                 ),
                               ),
@@ -479,5 +686,138 @@ class Home extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  void _sendItem(
+    String date,
+    String name,
+
+    int gloves,
+    int bags,
+    int sm_box,
+    int sap_paper,
+    int seal,
+    int tissue,
+    int tape,
+    int carton,
+    int bopp_pouch,
+    int sticker,
+    BuildContext context,
+  ) async {
+    await FirebaseFirestore.instance
+        .collection("Packaging")
+        .doc(name)
+        .collection("Deliver")
+        .doc()
+        .set({
+          "Date": date,
+          "Gloves": gloves,
+          "Bags": bags,
+          "Sm_Box": sm_box,
+          "Sap_Paper": sap_paper,
+          "Seal": seal,
+          "Tissue": tissue,
+          "Tape": tape,
+          "Carton": carton,
+          "Bopp_Pouch": bopp_pouch,
+          "Sticker": sticker,
+          "Delivered_Expected_carton": 0,
+        });
+    await FirebaseFirestore.instance.collection("Packaging").doc(name).update({
+      "Gloves": FieldValue.increment(gloves),
+      "Bags": FieldValue.increment(bags),
+      "Sm_Box": FieldValue.increment(sm_box),
+      "Sap_Paper": FieldValue.increment(sap_paper),
+      "Seal": FieldValue.increment(seal),
+      "Tissue": FieldValue.increment(tissue),
+      "Tape": FieldValue.increment(tape),
+      "Carton": FieldValue.increment(carton),
+      "Bopp_Pouch": FieldValue.increment(bopp_pouch),
+      "Sticker": FieldValue.increment(sticker),
+      "Delivered_Expected_carton": 0,
+    });
+    await FirebaseFirestore.instance
+        .collection("Inventory")
+        .doc("Seal")
+        .update({"quantity": FieldValue.increment(-seal)});
+    await FirebaseFirestore.instance
+        .collection("Inventory")
+        .doc("Seal")
+        .collection("Ledger")
+        .doc()
+        .set({
+          "Date": date,
+          "Quantity": "+$seal",
+          "Color": "Red",
+          "Description": name,
+        });
+    await FirebaseFirestore.instance
+        .collection("Inventory")
+        .doc("Sticker")
+        .update({"quantity": FieldValue.increment(-sticker)});
+    await FirebaseFirestore.instance.collection("Inventory").doc("Bags").update(
+      {"quantity": FieldValue.increment(-bags)},
+    );
+    await FirebaseFirestore.instance
+        .collection("Inventory")
+        .doc("Sm_Box")
+        .update({"quantity": FieldValue.increment(-sm_box)});
+    await FirebaseFirestore.instance
+        .collection("Inventory")
+        .doc("Sap_Paper")
+        .update({"quantity": FieldValue.increment(-sap_paper)});
+    await FirebaseFirestore.instance.collection("Inventory").doc("Seal").update(
+      {"quantity": FieldValue.increment(-seal)},
+    );
+    await FirebaseFirestore.instance
+        .collection("Inventory")
+        .doc("Tissue")
+        .update({"quantity": FieldValue.increment(-tissue)});
+    await FirebaseFirestore.instance
+        .collection("Inventory")
+        .doc("Bopp_Pouch")
+        .update({"quantity": FieldValue.increment(-bopp_pouch)});
+
+    await FirebaseFirestore.instance.collection("Inventory").doc("Tape").update(
+      {"quantity": FieldValue.increment(-tape)},
+    );
+    await FirebaseFirestore.instance
+        .collection("Inventory")
+        .doc("Tissue")
+        .update({"quantity": FieldValue.increment(-tissue)});
+    Navigator.pop(context);
+  }
+
+  void _recievedItem(
+    String date,
+    String name,
+
+    int carton,
+
+    String status,
+
+    BuildContext context,
+  ) async {
+    await FirebaseFirestore.instance
+        .collection("Packaging")
+        .doc(name)
+        .collection("Received")
+        .doc()
+        .set({
+          "Date": date,
+          "Received_carton": carton,
+          "Received_peices": carton * 144,
+          "Received_box": carton * 48,
+          "Status": status,
+        });
+    await FirebaseFirestore.instance
+        .collection("Packaging")
+        .doc(name)
+        .update({
+          "Received_carton": FieldValue.increment(carton),
+          "Received_peices": FieldValue.increment(carton * 144),
+          "Received_box": FieldValue.increment(carton * 48),
+        })
+        .then((value) => Navigator.pop(context));
   }
 }
