@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:urine_bag/commons/addButton.dart';
 import 'package:urine_bag/commons/home_button.dart';
 import 'package:urine_bag/pages/auth/authentication.dart';
+import 'package:urine_bag/pages/home/home.dart';
 import 'package:urine_bag/pages/inventory/inventory.dart';
-import 'package:urine_bag/pages/packager/PackagerDetail.dart';
 import 'package:urine_bag/pages/packager/packager.dart';
 import 'package:urine_bag/pages/supplier/supplier.dart';
 
@@ -16,74 +16,158 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
-  final TextEditingController _bagController = TextEditingController();
+  static  int readyBags=0 ;
+  Map<String, TextEditingController> controllers = {};
+  List<String> inventoryDocIds = [];
   final TextEditingController _dateController = TextEditingController();
-  final TextEditingController _glovesController = TextEditingController();
-  final TextEditingController _smBoxController = TextEditingController();
-  final TextEditingController _sapPaperController = TextEditingController();
-  final TextEditingController _sealController = TextEditingController();
-  final TextEditingController _tissueController = TextEditingController();
-  final TextEditingController _cartonController = TextEditingController();
-  final TextEditingController _boppPouchController = TextEditingController();
-  final TextEditingController _stickerController = TextEditingController();
-  final TextEditingController _tapeController = TextEditingController();
+
   final TextEditingController _recievedCartonController =
       TextEditingController();
   final TextEditingController _recievedDateController = TextEditingController();
   final TextEditingController _statusController = TextEditingController();
-  QuerySnapshot<Map<String, dynamic>>? PackagerListQuery;
-  // List<DocumentSnapshot<Map<String, dynamic>>> PackagerList = [];
+
   String? selectedItem;
   String? receivedSelectedItem;
+  List<String> packagerDocIds = [];
 
-  // Fetch packager data from Firebase
-  // void _getPackager() async {
-  //   PackagerListQuery = await FirebaseFirestore.instance
-  //       .collection("Packaging")
-  //       .get();
-
-  //   setState(() {
-  //     PackagerList = PackagerListQuery!.docs;
-  //     if (PackagerList.isNotEmpty) {
-  //       // Set default selected item to the first packager
-  //       selectedItem = PackagerList[0].id;
-  //     } else {
-  //       selectedItem = "No Packager found";
-  //     }
-  //   });
   List<String> PackagerList = []; // List to store document IDs
 
   @override
   void initState() {
     super.initState();
-    getDocumentIds();
+    _fetchInventoryDocs();
+    _fetchPackagerDocs();
   }
 
-  Future<void> getDocumentIds() async {
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    _fetchInventoryDocs();
+  }
+
+  Future<void> _fetchInventoryDocs() async {
     try {
-      // Get a reference to the Firestore collection
-      CollectionReference collectionRef = FirebaseFirestore.instance.collection(
-        'Packaging',
-      );
-
-      // Get all documents from the collection
-      QuerySnapshot querySnapshot = await collectionRef.get();
-
-      // Extract document IDs and add them to the list
-      List<String> packagerIds = [];
-      for (var doc in querySnapshot.docs) {
-        packagerIds.add(doc.id); // Add each document ID to the list
-      }
+      QuerySnapshot snapshot = await FirebaseFirestore.instance
+          .collection('Inventory')
+          .get(); // Fetch all documents in the Inventory collection
 
       setState(() {
-        PackagerList = packagerIds; // Set the packager list
-        if (PackagerList.isNotEmpty && selectedItem == null) {
-          selectedItem = PackagerList.first;
+        // Store document IDs
+        inventoryDocIds = snapshot.docs.map((doc) => doc.id).toList();
+
+        // Initialize controllers for each document
+        for (var docId in inventoryDocIds) {
+          if (!controllers.containsKey(docId)) {
+            controllers[docId] = TextEditingController();
+          }
         }
       });
     } catch (e) {
-      print("Error getting document IDs: $e");
+      print("Error fetching inventory documents: $e");
     }
+  }
+
+  Future<void> _fetchPackagerDocs() async {
+    try {
+      QuerySnapshot snapshot = await FirebaseFirestore.instance
+          .collection('Packaging')
+          .get(); // Fetch all documents in the Inventory collection
+
+      setState(() {
+        // Store document IDs
+        packagerDocIds = snapshot.docs.map((doc) => doc.id).toList();
+        print(packagerDocIds);
+
+        // Initialize controllers for each document
+      });
+    } catch (e) {
+      print("Error fetching inventory documents: $e");
+    }
+  }
+
+  Future<void> _sendData() async {
+    try {
+      Map<String, dynamic> dataToSend = {};
+      print("Data to send$dataToSend");
+
+      // Loop through all controllers and prepare the data
+      controllers.forEach((docId, controller) {
+        print("Controller for $docId: ${controller.text}");
+        int value =
+            int.tryParse(controller.text) ?? 0; // Default to 0 if invalid
+        dataToSend[docId] = value;
+        print("docId: $docId, value: $value");
+      });
+
+      // Save data to Firebase under the selected packager
+      await FirebaseFirestore.instance
+          .collection('Packaging')
+          .doc(selectedItem)
+          .collection("Deliver")
+          .doc()
+          .set({
+            'Actual Date': DateTime.now(),
+            'Date': _dateController.text,
+            'Delivered Expected Carton': 0,
+            ...dataToSend, // Add all document data as key-value pairs
+          });
+
+      for (var entry in dataToSend.entries) {
+        if (entry.value > 0) {
+          await FirebaseFirestore.instance.runTransaction((transaction) async {
+            DocumentReference invRef = FirebaseFirestore.instance
+                .collection("Inventory")
+                .doc(entry.key);
+
+            DocumentSnapshot snapshot = await transaction.get(invRef);
+
+            if (!snapshot.exists) return;
+
+            // Update inventory atomically
+            transaction.update(invRef, {
+              "quantity": FieldValue.increment(-entry.value),
+            });
+
+            // Add ledger entry
+            DocumentReference ledgerRef = invRef.collection("Ledger").doc();
+
+            transaction.set(ledgerRef, {
+              "Date": _dateController.text,
+              "Quantity": "-${entry.value}",
+              "Color": "Red",
+              "Description": selectedItem!,
+            });
+          });
+        }
+      }
+
+      await FirebaseFirestore.instance
+          .collection('Packaging')
+          .doc(selectedItem)
+          .update({
+            ...dataToSend.map((key, value) {
+              return MapEntry(key, FieldValue.increment(value));
+            }),
+          });
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Data sent successfully!")));
+    } catch (e) {
+      print("Error sending data: $e");
+    }
+
+    Navigator.pop(context);
+  }
+
+  @override
+  void dispose() {
+    // Dispose of all controllers to avoid memory leaks
+    controllers.forEach((key, controller) {
+      controller.dispose();
+    });
+    super.dispose();
   }
 
   @override
@@ -119,7 +203,7 @@ class _HomeState extends State<Home> {
                   ),
                 ),
                 child: Text(
-                  'Hi, Munir and Sons',
+                  "Hi ! Munir and Sons",
                   style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
@@ -143,7 +227,7 @@ class _HomeState extends State<Home> {
 
                 children: [
                   _homeContainer(
-                    "Total Bags",
+                    "Extra",
                     '34',
                     '100',
                     Color.fromRGBO(12, 44, 85, 1),
@@ -151,8 +235,8 @@ class _HomeState extends State<Home> {
                   ),
                   _homeContainer(
                     "Ready Bags",
-                    '34',
-                    '100',
+                    '$readyBags',
+                    '${readyBags*48}',
                     Color.fromRGBO(41, 99, 116, 1),
                     context,
                   ),
@@ -215,13 +299,13 @@ class _HomeState extends State<Home> {
                                     ),
 
                                     const SizedBox(height: 16),
-                                    PackagerList.isEmpty
+                                    packagerDocIds.isEmpty
                                         ? Center(
                                             child: Text("No Packager found"),
                                           )
                                         : DropdownButton<String>(
                                             value:
-                                                PackagerList.contains(
+                                                packagerDocIds.contains(
                                                   selectedItem,
                                                 )
                                                 ? selectedItem
@@ -233,13 +317,15 @@ class _HomeState extends State<Home> {
                                                 selectedItem = value;
                                               });
                                             },
-                                            items: PackagerList.map(
-                                              (element) =>
-                                                  DropdownMenuItem<String>(
-                                                    value: element,
-                                                    child: Text(element),
-                                                  ),
-                                            ).toList(),
+                                            items: packagerDocIds
+                                                .map(
+                                                  (element) =>
+                                                      DropdownMenuItem<String>(
+                                                        value: element,
+                                                        child: Text(element),
+                                                      ),
+                                                )
+                                                .toList(),
                                           ),
                                     SizedBox(height: 15),
                                     TextField(
@@ -250,107 +336,22 @@ class _HomeState extends State<Home> {
                                       ),
                                       keyboardType: TextInputType.datetime,
                                     ),
-                                    const SizedBox(height: 16),
-                                    TextField(
-                                      controller: _bagController,
-                                      decoration: InputDecoration(
-                                        labelText: "Bags",
-                                        border: OutlineInputBorder(),
-                                      ),
-                                      keyboardType: TextInputType.number,
-                                    ),
-                                    const SizedBox(height: 16),
+                                    ...inventoryDocIds.map((docId) {
+                                      return Container(
+                                        margin: EdgeInsets.symmetric(
+                                          vertical: 10,
+                                        ),
+                                        child: TextField(
+                                          controller: controllers[docId],
+                                          decoration: InputDecoration(
+                                            labelText: docId,
+                                            border: OutlineInputBorder(),
+                                          ),
+                                          keyboardType: TextInputType.number,
+                                        ),
+                                      );
+                                    }),
 
-                                    TextField(
-                                      controller: _smBoxController,
-                                      decoration: InputDecoration(
-                                        labelText: "Sm Box",
-                                        border: OutlineInputBorder(),
-                                      ),
-                                      keyboardType: TextInputType.number,
-                                    ),
-                                    const SizedBox(height: 16),
-
-                                    TextField(
-                                      controller: _sapPaperController,
-                                      decoration: InputDecoration(
-                                        labelText: "Sap Paper",
-                                        border: OutlineInputBorder(),
-                                      ),
-                                      keyboardType: TextInputType.number,
-                                    ),
-                                    const SizedBox(height: 16),
-
-                                    TextField(
-                                      controller: _sealController,
-                                      decoration: InputDecoration(
-                                        labelText: "Seal",
-                                        border: OutlineInputBorder(),
-                                      ),
-                                      keyboardType: TextInputType.number,
-                                    ),
-                                    const SizedBox(height: 16),
-
-                                    TextField(
-                                      controller: _tissueController,
-                                      decoration: InputDecoration(
-                                        labelText: "Tissue",
-                                        border: OutlineInputBorder(),
-                                      ),
-                                      keyboardType: TextInputType.number,
-                                    ),
-                                    const SizedBox(height: 16),
-
-                                    TextField(
-                                      controller: _glovesController,
-                                      decoration: InputDecoration(
-                                        labelText: "GLoves",
-                                        border: OutlineInputBorder(),
-                                      ),
-                                      keyboardType: TextInputType.number,
-                                    ),
-                                    const SizedBox(height: 16),
-
-                                    TextField(
-                                      controller: _cartonController,
-                                      decoration: InputDecoration(
-                                        labelText: "Cartton",
-                                        border: OutlineInputBorder(),
-                                      ),
-                                      keyboardType: TextInputType.number,
-                                    ),
-                                    const SizedBox(height: 16),
-
-                                    TextField(
-                                      controller: _boppPouchController,
-                                      decoration: InputDecoration(
-                                        labelText: "Bopp Pouch",
-                                        border: OutlineInputBorder(),
-                                      ),
-                                      keyboardType: TextInputType.number,
-                                    ),
-                                    const SizedBox(height: 16),
-
-                                    TextField(
-                                      controller: _stickerController,
-                                      decoration: InputDecoration(
-                                        labelText: "Sticker",
-                                        border: OutlineInputBorder(),
-                                      ),
-                                      keyboardType: TextInputType.number,
-                                    ),
-                                    const SizedBox(height: 16),
-                                    TextField(
-                                      controller: _tapeController,
-                                      decoration: InputDecoration(
-                                        labelText: "Tape",
-                                        border: OutlineInputBorder(),
-                                      ),
-                                      keyboardType: TextInputType.number,
-                                    ),
-                                    const SizedBox(height: 16),
-
-                                    const Spacer(),
                                     AddButton(
                                       fn: () {
                                         if (selectedItem == null) {
@@ -363,46 +364,10 @@ class _HomeState extends State<Home> {
                                               ),
                                             ),
                                           );
+                                          Navigator.pop(context);
                                           return;
                                         }
-
-                                        _sendItem(
-                                          _dateController.text,
-                                          selectedItem!,
-                                          int.tryParse(
-                                                _glovesController.text,
-                                              ) ??
-                                              0,
-                                          int.tryParse(_bagController.text) ??
-                                              0,
-                                          int.tryParse(_smBoxController.text) ??
-                                              0,
-                                          int.tryParse(
-                                                _sapPaperController.text,
-                                              ) ??
-                                              0,
-                                          int.tryParse(_sealController.text) ??
-                                              0,
-                                          int.tryParse(
-                                                _tissueController.text,
-                                              ) ??
-                                              0,
-                                          int.tryParse(_tapeController.text) ??
-                                              0,
-                                          int.tryParse(
-                                                _cartonController.text,
-                                              ) ??
-                                              0,
-                                          int.tryParse(
-                                                _boppPouchController.text,
-                                              ) ??
-                                              0,
-                                          int.tryParse(
-                                                _stickerController.text,
-                                              ) ??
-                                              0,
-                                          context,
-                                        );
+                                        _sendData();
                                       },
                                     ),
                                   ],
@@ -482,12 +447,17 @@ class _HomeState extends State<Home> {
                                     ),
 
                                     const SizedBox(height: 16),
-                                    PackagerList.isEmpty
+                                    packagerDocIds.isEmpty
                                         ? Center(
                                             child: Text("No Packager found"),
                                           )
                                         : DropdownButton<String>(
-                                            value: selectedItem,
+                                            value:
+                                                packagerDocIds.contains(
+                                                  receivedSelectedItem,
+                                                )
+                                                ? receivedSelectedItem
+                                                : null,
                                             hint: Text("Select Packager"),
                                             isExpanded: true,
                                             onChanged: (String? value) {
@@ -495,13 +465,15 @@ class _HomeState extends State<Home> {
                                                 receivedSelectedItem = value;
                                               });
                                             },
-                                            items: PackagerList.map(
-                                              (element) =>
-                                                  DropdownMenuItem<String>(
-                                                    value: element,
-                                                    child: Text(element),
-                                                  ),
-                                            ).toList(),
+                                            items: packagerDocIds
+                                                .map(
+                                                  (element) =>
+                                                      DropdownMenuItem<String>(
+                                                        value: element,
+                                                        child: Text(element),
+                                                      ),
+                                                )
+                                                .toList(),
                                           ),
 
                                     SizedBox(height: 15),
@@ -540,7 +512,7 @@ class _HomeState extends State<Home> {
                                     const Spacer(),
                                     AddButton(
                                       fn: () {
-                                        if (selectedItem == null) {
+                                        if (receivedSelectedItem == null) {
                                           ScaffoldMessenger.of(
                                             context,
                                           ).showSnackBar(
@@ -550,6 +522,7 @@ class _HomeState extends State<Home> {
                                               ),
                                             ),
                                           );
+                                          Navigator.pop(context);
                                           return;
                                         }
 
@@ -688,106 +661,6 @@ class _HomeState extends State<Home> {
     );
   }
 
-  void _sendItem(
-    String date,
-    String name,
-
-    int gloves,
-    int bags,
-    int sm_box,
-    int sap_paper,
-    int seal,
-    int tissue,
-    int tape,
-    int carton,
-    int bopp_pouch,
-    int sticker,
-    BuildContext context,
-  ) async {
-    await FirebaseFirestore.instance
-        .collection("Packaging")
-        .doc(name)
-        .collection("Deliver")
-        .doc()
-        .set({
-          "Date": date,
-          "Gloves": gloves,
-          "Bags": bags,
-          "Sm_Box": sm_box,
-          "Sap_Paper": sap_paper,
-          "Seal": seal,
-          "Tissue": tissue,
-          "Tape": tape,
-          "Carton": carton,
-          "Bopp_Pouch": bopp_pouch,
-          "Sticker": sticker,
-          "Delivered_Expected_carton": 0,
-        });
-    await FirebaseFirestore.instance.collection("Packaging").doc(name).update({
-      "Gloves": FieldValue.increment(gloves),
-      "Bags": FieldValue.increment(bags),
-      "Sm_Box": FieldValue.increment(sm_box),
-      "Sap_Paper": FieldValue.increment(sap_paper),
-      "Seal": FieldValue.increment(seal),
-      "Tissue": FieldValue.increment(tissue),
-      "Tape": FieldValue.increment(tape),
-      "Carton": FieldValue.increment(carton),
-      "Bopp_Pouch": FieldValue.increment(bopp_pouch),
-      "Sticker": FieldValue.increment(sticker),
-      "Delivered_Expected_carton": 0,
-    });
-    await FirebaseFirestore.instance
-        .collection("Inventory")
-        .doc("Seal")
-        .update({"quantity": FieldValue.increment(-seal)});
-    await FirebaseFirestore.instance
-        .collection("Inventory")
-        .doc("Seal")
-        .collection("Ledger")
-        .doc()
-        .set({
-          "Date": date,
-          "Quantity": "+$seal",
-          "Color": "Red",
-          "Description": name,
-        });
-    await FirebaseFirestore.instance
-        .collection("Inventory")
-        .doc("Sticker")
-        .update({"quantity": FieldValue.increment(-sticker)});
-    await FirebaseFirestore.instance.collection("Inventory").doc("Bags").update(
-      {"quantity": FieldValue.increment(-bags)},
-    );
-    await FirebaseFirestore.instance
-        .collection("Inventory")
-        .doc("Sm_Box")
-        .update({"quantity": FieldValue.increment(-sm_box)});
-    await FirebaseFirestore.instance
-        .collection("Inventory")
-        .doc("Sap_Paper")
-        .update({"quantity": FieldValue.increment(-sap_paper)});
-    await FirebaseFirestore.instance.collection("Inventory").doc("Seal").update(
-      {"quantity": FieldValue.increment(-seal)},
-    );
-    await FirebaseFirestore.instance
-        .collection("Inventory")
-        .doc("Tissue")
-        .update({"quantity": FieldValue.increment(-tissue)});
-    await FirebaseFirestore.instance
-        .collection("Inventory")
-        .doc("Bopp_Pouch")
-        .update({"quantity": FieldValue.increment(-bopp_pouch)});
-
-    await FirebaseFirestore.instance.collection("Inventory").doc("Tape").update(
-      {"quantity": FieldValue.increment(-tape)},
-    );
-    await FirebaseFirestore.instance
-        .collection("Inventory")
-        .doc("Tissue")
-        .update({"quantity": FieldValue.increment(-tissue)});
-    Navigator.pop(context);
-  }
-
   void _recievedItem(
     String date,
     String name,
@@ -806,17 +679,21 @@ class _HomeState extends State<Home> {
         .set({
           "Date": date,
           "Received_carton": carton,
-          "Received_peices": carton * 144,
+          "Received_pieces": carton * 144,
           "Received_box": carton * 48,
           "Status": status,
         });
+   setState(() {
+      readyBags += carton;
+   });
+
     await FirebaseFirestore.instance
         .collection("Packaging")
         .doc(name)
         .update({
-          "Received_carton": FieldValue.increment(carton),
-          "Received_peices": FieldValue.increment(carton * 144),
-          "Received_box": FieldValue.increment(carton * 48),
+          "Received Carton": FieldValue.increment(carton),
+          "Pieces": FieldValue.increment(carton * 144),
+          "Boxes": FieldValue.increment(carton * 48),
         })
         .then((value) => Navigator.pop(context));
   }

@@ -7,19 +7,17 @@ class InventoryDetail extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
     Color getRowColor(String color) {
-  switch (color) {
-    case "Green":
-      return Colors.green;
-    case "Red":
-      return Colors.red;
-    default:
-      return Colors.grey;
-  }
-}
+      switch (color) {
+        case "Green":
+          return Colors.green;
+        case "Red":
+          return Colors.red;
+        default:
+          return Colors.grey;
+      }
+    }
 
-    
     return Scaffold(
       backgroundColor: const Color.fromRGBO(232, 226, 219, 1),
       body: SafeArea(
@@ -70,23 +68,27 @@ class InventoryDetail extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
                   _inventoryDetailContainer(
-                    "Quantity",
-                    item['quantity'].toString(),
+                    "Total Qty",
+                    item['total quantity'].toString(),
+                    Color.fromRGBO(26, 50, 99, 1),
                     context,
                   ),
                   _inventoryDetailContainer(
                     "Total Value",
-                    item["value"].toString(),
+                    item["total value"].toString(),
+                    const Color.fromRGBO(84, 119, 146, 1),
                     context,
                   ),
                 ],
               ),
+              SizedBox(height: 10),
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 30),
                 margin: EdgeInsets.only(top: 10, right: 20, left: 20),
                 width: double.infinity,
-                height: 50,
+                height: 70,
                 decoration: BoxDecoration(
+                  //color: const Color.fromARGB(255, 16, 70, 91),
                   color: Colors.black,
                   borderRadius: BorderRadius.circular(10),
                 ),
@@ -94,23 +96,56 @@ class InventoryDetail extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      'Expected Carttons',
+                      'Stock',
                       style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
+                        fontSize: 22
                       ),
                     ),
                     Spacer(),
                     Text(
-                      item["expected cartton"].toString(),
+                      item["quantity"].toString(),
                       style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
+                        fontSize: 22
                       ),
                     ),
                   ],
                 ),
               ),
+
+              // Container(
+              //   padding: EdgeInsets.symmetric(horizontal: 30),
+              //   margin: EdgeInsets.only(top: 10, right: 20, left: 20),
+              //   width: double.infinity,
+              //   height: 50,
+              //   decoration: BoxDecoration(
+              //     color: Colors.black,
+              //     borderRadius: BorderRadius.circular(10),
+              //   ),
+              //   child: Row(
+              //     mainAxisAlignment: MainAxisAlignment.center,
+              //     children: [
+              //       Text(
+              //         'Expected Carttons',
+              //         style: TextStyle(
+              //           color: Colors.white,
+              //           fontWeight: FontWeight.bold,
+              //         ),
+              //       ),
+              //       Spacer(),
+              //       Text(
+              //         item["expected cartton"].toString(),
+              //         style: TextStyle(
+              //           color: Colors.white,
+              //           fontWeight: FontWeight.bold,
+              //         ),
+              //       ),
+              //     ],
+              //   ),
+              // ),
               SizedBox(height: 20),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20.0),
@@ -150,8 +185,6 @@ class InventoryDetail extends StatelessWidget {
                     .collection("Ledger")
                     .snapshots(),
                 builder: (context, snapshot) {
-                  
-
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(
                       child: CircularProgressIndicator(color: Colors.lightBlue),
@@ -178,9 +211,7 @@ class InventoryDetail extends StatelessWidget {
                           border: TableBorder.all(width: 1),
                           children: [
                             TableRow(
-                              decoration:  BoxDecoration(
-                                color:rowColor,
-                              ),
+                              decoration: BoxDecoration(color: rowColor),
                               children: [
                                 Center(
                                   child: Padding(
@@ -235,12 +266,12 @@ class InventoryDetail extends StatelessWidget {
   Widget _inventoryDetailContainer(
     String text,
     String cartons,
-
+    Color color,
     BuildContext context,
   ) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color.fromRGBO(84, 119, 146, 1),
+        color: color,
 
         borderRadius: BorderRadius.circular(15),
       ),
@@ -254,7 +285,7 @@ class InventoryDetail extends StatelessWidget {
             text,
             style: TextStyle(
               fontWeight: FontWeight.bold,
-              fontSize: 18,
+              fontSize: 16,
               color: Colors.white,
             ),
           ),

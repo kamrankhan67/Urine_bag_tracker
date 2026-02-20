@@ -13,7 +13,7 @@ class HomeButton extends StatelessWidget {
         padding: EdgeInsets.symmetric(horizontal: 25),
         decoration: BoxDecoration(
           color:const Color.fromRGBO(84, 119, 146,1),
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(10),
         ),
         width: MediaQuery.of(context).size.width,
         height: 50,

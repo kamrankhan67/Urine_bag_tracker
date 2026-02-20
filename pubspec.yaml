@@ -36,7 +36,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   excel: ^2.0.4
   firebase_core:
-  cloud_firestore:
+  cloud_firestore: ^6.1.2
   sqflite: ^2.0.0+3
   path_provider: ^2.0.1
   

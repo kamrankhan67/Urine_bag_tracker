@@ -1,12 +1,13 @@
+
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:urine_bag/commons/addButton.dart';
 import 'package:urine_bag/pages/packager/packagerDeliverView.dart';
 import 'package:urine_bag/pages/packager/packagerReceivedView.dart';
 
 class PackagerDetail extends StatefulWidget {
   const PackagerDetail({super.key, required this.packagerData});
-  final DocumentSnapshot<Object?> packagerData;
+  final DocumentSnapshot packagerData;
 
   @override
   State<PackagerDetail> createState() => _PackagerDetailState();
@@ -15,472 +16,300 @@ class PackagerDetail extends StatefulWidget {
 class _PackagerDetailState extends State<PackagerDetail> {
   @override
   Widget build(BuildContext context) {
+    Map<String, dynamic> data =
+        widget.packagerData.data() as Map<String, dynamic>;
+
+    // ✅ Create filtered copy (DO NOT modify original map)
+    Map<String, dynamic> filteredData = Map.from(data);
+    filteredData.remove("Expected Carton");
     
+    filteredData.remove("Received Carton");
+    filteredData.remove("Boxes");
+    filteredData.remove("Pieces");
+
+    List<String> keys = filteredData.keys.toList();
+
     return Scaffold(
       backgroundColor: const Color.fromRGBO(232, 226, 219, 1),
-      // floatingActionButton: FloatingActionButton(
-      //   backgroundColor: Colors.black,
-      //   foregroundColor: Colors.white,
-      //   onPressed: () {
-      //     showModalBottomSheet(
-      //       context: context,
-      //       isScrollControlled: true,
-      //       shape: const RoundedRectangleBorder(
-      //         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      //       ),
-      //       builder: (context) {
-      //         return Padding(
-      //           padding: EdgeInsets.only(
-      //             bottom: MediaQuery.of(context).viewInsets.bottom,
-      //           ),
-      //           child: Container(
-      //             padding: const EdgeInsets.all(16),
-      //             margin: EdgeInsets.symmetric(horizontal: 20),
-      //             height: MediaQuery.of(context).size.height * 0.4,
-      //             child: Column(
-      //               crossAxisAlignment: CrossAxisAlignment.center,
-      //               children: [
-      //                 Center(
-      //                   child: Container(
-      //                     width: 40,
-      //                     height: 5,
-      //                     margin: const EdgeInsets.only(bottom: 16),
-      //                     decoration: BoxDecoration(
-      //                       color: Colors.grey[400],
-      //                       borderRadius: BorderRadius.circular(10),
-      //                     ),
-      //                   ),
-      //                 ),
-
-      //                 const Text(
-      //                   "Deliver Item",
-      //                   style: TextStyle(
-      //                     fontSize: 18,
-      //                     fontWeight: FontWeight.bold,
-      //                   ),
-      //                 ),
-
-      //                 const SizedBox(height: 16),
-
-      //                 TextField(
-      //                   decoration: InputDecoration(
-      //                     labelText: "Bags",
-      //                     border: OutlineInputBorder(),
-      //                   ),
-      //                 ),
-      //                 const SizedBox(height: 16),
-
-      //                 TextField(
-      //                   decoration: InputDecoration(
-      //                     labelText: "Sm Box",
-      //                     border: OutlineInputBorder(),
-      //                   ),
-      //                 ),
-      //                 const SizedBox(height: 16),
-
-      //                 TextField(
-      //                   decoration: InputDecoration(
-      //                     labelText: "Sap Paper",
-      //                     border: OutlineInputBorder(),
-      //                   ),
-      //                 ),
-      //                 const SizedBox(height: 16),
-
-      //                 TextField(
-      //                   decoration: InputDecoration(
-      //                     labelText: "Seal",
-      //                     border: OutlineInputBorder(),
-      //                   ),
-      //                 ),
-      //                 const SizedBox(height: 16),
-
-      //                 TextField(
-      //                   decoration: InputDecoration(
-      //                     labelText: "Tissue",
-      //                     border: OutlineInputBorder(),
-      //                   ),
-      //                 ),
-      //                 const SizedBox(height: 16),
-
-      //                 TextField(
-      //                   decoration: InputDecoration(
-      //                     labelText: "GLoves",
-      //                     border: OutlineInputBorder(),
-      //                   ),
-      //                 ),
-      //                 const SizedBox(height: 16),
-
-      //                 TextField(
-      //                   decoration: InputDecoration(
-      //                     labelText: "Cartton",
-      //                     border: OutlineInputBorder(),
-      //                   ),
-      //                 ),
-      //                 const SizedBox(height: 16),
-
-      //                 TextField(
-      //                   decoration: InputDecoration(
-      //                     labelText: "Bopp Pouch",
-      //                     border: OutlineInputBorder(),
-      //                   ),
-      //                 ),
-      //                 const SizedBox(height: 16),
-
-      //                 TextField(
-      //                   decoration: InputDecoration(
-      //                     labelText: "Sticker",
-      //                     border: OutlineInputBorder(),
-      //                   ),
-      //                 ),
-      //                 const SizedBox(height: 16),
-
-      //                 const Spacer(),
-      //                 AddButton(fn: () => Navigator.pop(context)),
-      //               ],
-      //             ),
-      //           ),
-      //         );
-      //       },
-      //     );
-      //   },
-      //   child: const Icon(Icons.add),
-      // ),
       body: SafeArea(
         child: SingleChildScrollView(
-          physics: BouncingScrollPhysics(),
+          physics: const BouncingScrollPhysics(),
           child: Column(
             children: [
+              /// 🔵 HEADER
               Container(
                 height: 70,
-                padding: EdgeInsets.only(left: 20, top: 10, bottom: 10),
+                padding: const EdgeInsets.only(left: 10),
                 width: MediaQuery.of(context).size.width,
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   color: Color.fromRGBO(26, 50, 99, 1),
                   borderRadius: BorderRadius.only(
                     bottomLeft: Radius.circular(10),
                     bottomRight: Radius.circular(10),
                   ),
                 ),
-                child: Center(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      IconButton(
-                        onPressed: () {
-                          Navigator.pop(context);
-                        },
-                        icon: Icon(
-                          Icons.arrow_back_rounded,
-                          color: Colors.white,
-                        ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(
+                        Icons.arrow_back_rounded,
+                        color: Colors.white,
                       ),
+                    ),
+                    Text(
+                      widget.packagerData.id,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 23,
+                      ),
+                    ),
+                    const SizedBox(width: 50),
+                  ],
+                ),
+              ),
 
-                      Text(
-                        widget.packagerData.id,
+              const SizedBox(height: 20),
+
+              /// 🟢 DELIVERED CONTAINER
+              Container(
+                padding: const EdgeInsets.all(12),
+                margin: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 10,
+                ),
+                width: MediaQuery.of(context).size.width,
+                decoration: BoxDecoration(
+                  color: const Color.fromARGB(255, 0, 0, 0),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  children: [
+                    /// Title
+                    const Center(
+                      child: Text(
+                        'Delivered',
                         style: TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
-                          fontSize: 23,
-                        ),
-                      ),
-                      SizedBox(width: MediaQuery.of(context).size.width / 6),
-                    ],
-                  ),
-                ),
-              ),
-              SizedBox(height: 20),
-              Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  
-                ],
-              ),
-              Container(
-                padding: EdgeInsets.all(10),
-                margin: EdgeInsets.only(
-                  right: 20,
-                  left: 20,
-                  top: 20,
-                  bottom: 5,
-                ),
-                width: MediaQuery.of(context).size.width,
-                //height: 100,
-                decoration: BoxDecoration(color: Colors.grey),
-                child: Column(
-                  children: [
-                    Container(
-                      margin: EdgeInsets.only(left: 20),
-                      width: 150,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: Colors.blueGrey,
-
-                        borderRadius: BorderRadius.circular(35),
-                      ),
-                      child: Center(
-                        child: Text(
-                          'Delivered',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 17,
-                          ),
+                          fontSize: 17,
                         ),
                       ),
                     ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Bags : ${widget.packagerData["Bags"]}',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
+
+                    const SizedBox(height: 15),
+
+                    /// 🔥 GRID VIEW
+                    GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            childAspectRatio: 3.2,
+                            mainAxisSpacing: 8,
+                            crossAxisSpacing: 8,
                           ),
-                        ),
-                        Text(
-                          'Gloves : ${widget.packagerData["Gloves"]}',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
+                      itemCount: keys.length,
+                      itemBuilder: (context, index) {
+                        String key = keys[index];
+                        String formattedKey = key.replaceAll("_", " ");
+
+                        return Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.blueGrey.shade700,
+                            borderRadius: BorderRadius.circular(8),
                           ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 10),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Sm Box : ${widget.packagerData["Sm_Box"]}',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
+                          child: Center(
+                            child: Text(
+                              "$formattedKey : ${filteredData[key] ?? 0}",
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
-                        ),
-                        Text(
-                          'Carton : ${widget.packagerData["Carton"]}',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
+                        );
+                      },
                     ),
 
-                    SizedBox(height: 10),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Sap Paper : ${widget.packagerData["Sap_Paper"]}',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Text(
-                          'Bopp pouch : ${widget.packagerData["Bopp_Pouch"]}',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
+                    const SizedBox(height: 15),
 
-                    SizedBox(height: 10),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Seal : ${widget.packagerData["Seal"]}',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Text(
-                          'Sticker : ${widget.packagerData["Sticker"]}',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 10),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Tissue : ${widget.packagerData["Tissue"]}',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Text(
-                          'Tape : ${widget.packagerData["Tape"]}',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-
+                    /// ✅ Expected Carton (Shown Once)
                     Text(
-                      'Expected Cartons : ${widget.packagerData["Delivered_Expected_carton"]}',
-                      style: TextStyle(
-                        color: const Color.fromARGB(255, 0, 0, 0),
-                        fontSize: 12,
+                      "Expected Cartons : ${data["Expected Carton"] ?? 0}",
+                      style: const TextStyle(
+                        color: Color.fromARGB(255, 255, 255, 255),
+                        fontSize: 14,
                         fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    SizedBox(height: 20,),
+                     GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => PackagerDetailView(packagerName: widget.packagerData.id,)
+                          ),
+                        );
+                      },
+                      child: Container(
+                        height: 45,
+                        decoration: BoxDecoration(
+                          color: Colors.green,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Center(
+                          child: Text(
+                            "View Delivered",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ],
                 ),
               ),
 
-              GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => PackagerDetailView(packagerName: widget.packagerData.id,),
-                    ),
-                  );
-                },
-                child: Container(
-                  height: 50,
-                  margin: EdgeInsets.symmetric(horizontal: 20),
-                  width: MediaQuery.of(context).size.width,
-                  decoration: BoxDecoration(color: Colors.green),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.camera_alt_outlined, color: Colors.white),
-                      SizedBox(width: 10),
-                      Text(
-                        "View",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              SizedBox(width: 5),
+              const SizedBox(height: 5),
 
-              SizedBox(height: 20),
+              /// 🔘 DELIVER VIEW BUTTON
+              
+
+              const SizedBox(height: 15),
 
               Container(
-                padding: EdgeInsets.all(10),
-                margin: EdgeInsets.only(
-                  right: 20,
-                  left: 20,
-                  top: 20,
-                  bottom: 5,
+                padding: const EdgeInsets.all(12),
+                margin: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 10,
                 ),
                 width: MediaQuery.of(context).size.width,
-                //height: 100,
-                decoration: BoxDecoration(color: Colors.grey),
+                decoration: BoxDecoration(
+                  color: const Color.fromARGB(255, 0, 0, 0),
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 child: Column(
                   children: [
-                    Container(
-                      margin: EdgeInsets.only(left: 20),
-                      width: 150,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: Colors.blueGrey,
-
-                        borderRadius: BorderRadius.circular(35),
-                      ),
-                      child: Center(
-                        child: Text(
-                          'Recieved',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 17,
-                          ),
+                    /// 🔵 Title
+                    const Center(
+                      child: Text(
+                        'Received',
+                        style: TextStyle(
+                          color: Color.fromARGB(255, 255, 255, 255),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 17,
                         ),
                       ),
                     ),
-                    SizedBox(height: 10),
-                    Text(
-                      'Carton : ${widget.packagerData["Received_carton"]}',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Text(
-                      'Boxes : ${widget.packagerData["Received_box"]}',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Text(
-                      'Peices : ${widget.packagerData["Received_peices"]}',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
+
+                    const SizedBox(height: 15),
+                    widget.packagerData.exists                        ?
+                        
+                    // 🔥 STATIC RECEIVED DATA
+                    Builder(
+                      builder: (context) {
+                        Map<String, dynamic> receivedData = {
+                          "Carton": widget.packagerData["Received Carton"] ?? 0,
+                          "Boxes": widget.packagerData["Boxes"] ?? 0,
+                          "Pieces": widget.packagerData["Pieces"] ?? 0,
+                        };
+
+                        List<String> keys = receivedData.keys.toList();
+
+                        return GridView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2,
+                                childAspectRatio: 3.2,
+                                mainAxisSpacing: 8,
+                                crossAxisSpacing: 8,
+                              ),
+                          itemCount: keys.length,
+                          itemBuilder: (context, index) {
+                            String key = keys[index];
+
+                            return Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.blueGrey.shade700,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  "$key : ${receivedData[key]}",
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        );
+                      },
+                    ): const Text(
+                            "No Received Data",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+
+                    const SizedBox(height: 15),
+
+                    /// 🔘 VIEW BUTTON
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => PackagerRecievedView(
+                              packagerName: widget.packagerData.id,
+                            ),
+                          ),
+                        );
+                      },
+                      child: Container(
+                        height: 45,
+                        decoration: BoxDecoration(
+                          color: Colors.green,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Center(
+                          child: Text(
+                            "View Received",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ],
                 ),
               ),
 
-              GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => PackagerRecievedView(packagerName: widget.packagerData.id,),
-                    ),
-                  );
-                },
-                child: Container(
-                  height: 50,
-                  margin: EdgeInsets.symmetric(horizontal: 20),
-                  width: MediaQuery.of(context).size.width,
-                  decoration: BoxDecoration(color: Colors.green),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.camera_alt_outlined, color: Colors.white),
-                      SizedBox(width: 10),
-                      Text(
-                        "View",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              SizedBox(width: 5),
-
-              SizedBox(height: 20),
+              /// 🔘 RECEIVED VIEW BUTTON
+              
+              const SizedBox(height: 20),
             ],
           ),
         ),

@@ -88,7 +88,8 @@ class _PackagerState extends State<Packager> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => PackagerDetail(packagerData: ds,),
+                            builder: (context) =>
+                                PackagerDetail(packagerData: ds),
                           ),
                         );
                       }),
@@ -196,22 +197,10 @@ class _PackagerState extends State<Packager> {
 
   void _addpackager(String name) async {
     await FirebaseFirestore.instance.collection("Packaging").doc(name).set({
-      "Gloves": 0,
-      "Bags": 0,
-      "Sm_Box": 0,
-      "Sap_Paper": 0,
-      "Seal": 0,
-      "Tissue": 0,
-      "Tape": 0,
-      "Carton": 0,
-      "Bopp_Pouch": 0,
-      "Sticker": 0,
-      "Delivered_Expected_carton":0,
-      "Received_carton": 0,
-      "Received_box": 0,
-      "Received_peices": 0,
-      
-      
+      "Received Carton":0,
+      "Boxes":0,
+      "Pieces":0,
+      "Expected Carton":0,
     });
     Navigator.pop(context);
   }

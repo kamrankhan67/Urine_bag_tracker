@@ -262,9 +262,7 @@ class _SupplierPersonDetailState extends State<SupplierPersonDetail> {
                                   children: [
                                     Text('Per Piece Price '),
                                     Spacer(),
-                                    Text(
-                                      "${ds['balance'] / ds['quantity']}",
-                                    ),
+                                    Text("${ds['balance'] / ds['quantity']}"),
                                   ],
                                 ),
                                 Text(
@@ -324,9 +322,11 @@ class _SupplierPersonDetailState extends State<SupplierPersonDetail> {
         .collection("Inventory")
         .doc(widget.supplyItem)
         .update({
-          "quantity": 
-          FieldValue.increment(quantity),
-        });
-    Navigator.pop(context);
+          "quantity": FieldValue.increment(quantity),
+          "total quantity": FieldValue.increment(quantity),
+          "total value": FieldValue.increment(bal),
+        })
+        .then((value) => Navigator.pop(context));
+    
   }
 }

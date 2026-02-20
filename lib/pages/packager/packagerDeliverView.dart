@@ -11,6 +11,40 @@ class PackagerDetailView extends StatefulWidget {
 }
 
 class _PackagerDetailViewState extends State<PackagerDetailView> {
+  Map<String, TextEditingController> controllers = {};
+  List<String> inventoryDocIds = [];
+  final TextEditingController _dateController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchInventoryDocs();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Fetch data each time the widget is inserted or returned to the tree
+    _fetchInventoryDocs();
+  }
+
+  Future<void> _fetchInventoryDocs() async {
+    try {
+      QuerySnapshot snapshot = await FirebaseFirestore.instance
+          .collection('Inventory')
+          .get(); // Fetch all documents in the Inventory collection
+
+      setState(() {
+        // Store document IDs
+        inventoryDocIds = snapshot.docs.map((doc) => doc.id).toList();
+
+        // Initialize controllers for each document
+      });
+    } catch (e) {
+      print("Error fetching inventory documents: $e");
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -81,176 +115,115 @@ class _PackagerDetailViewState extends State<PackagerDetailView> {
                     itemCount: snapshot.data!.docs.length,
                     itemBuilder: (context, index) {
                       DocumentSnapshot ds = snapshot.data!.docs[index];
+                      Map<String, dynamic> data =
+                          ds.data() as Map<String, dynamic>;
+                      data.remove("Actual Date");
+                      data.remove("Date");
+                      data.remove("Delivered Expected Carton");
+
                       return Column(
                         children: [
+                          
                           Container(
-                            padding: EdgeInsets.all(10),
-                            margin: EdgeInsets.only(
-                              right: 20,
-                              left: 20,
-                              top: 20,
-                              bottom: 5,
+                            padding: const EdgeInsets.all(12),
+                            margin: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 10,
                             ),
                             width: MediaQuery.of(context).size.width,
-                            //height: 100,
-                            decoration: BoxDecoration(color: Colors.grey),
+                            decoration: BoxDecoration(
+                              color: const Color.fromARGB(255, 11, 20, 52),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                             child: Column(
                               children: [
+                                /// Title
+                                Center(
+                                  child: Text(
+                                    'Date : ${ds["Date"] ?? 0}',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 17,
+                                    ),
+                                  ),
+                                ),
+
+                                const SizedBox(height: 15),
+
+                                /// 🔥 GRID VIEW
+                                GridView.builder(
+                                  shrinkWrap: true,
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  gridDelegate:
+                                      const SliverGridDelegateWithFixedCrossAxisCount(
+                                        crossAxisCount: 2,
+                                        childAspectRatio: 3.2,
+                                        mainAxisSpacing: 8,
+                                        crossAxisSpacing: 8,
+                                      ),
+                                  itemCount: data.length,
+                                  itemBuilder: (context, index) {
+                                    List<String> keys = data.keys.toList();
+                                    String key = keys[index];
+
+                                    return Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.blueGrey.shade700,
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Center(
+                                        child: Text(
+                                          "$key : ${ds[key] ?? 0}",
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+
+                                const SizedBox(height: 15),
+
+                                /// ✅ Expected Carton (Shown Once)
                                 Text(
-                                  "Date : ${ds["Date"]}",
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 15,
+                                  "Expected Cartons : ${ds["Delivered Expected Carton"] ?? 0}",
+                                  style: const TextStyle(
+                                    color: Color.fromARGB(255, 255, 255, 255),
+                                    fontSize: 14,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                                SizedBox(height: 10),
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      'Bags : ${ds["Bags"]}',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
+                                SizedBox(height: 20),
+                                GestureDetector(
+                                  onTap: () {
+                                    _deliveredEdit(context, ds.id);
+                                  },
+                                  child: Container(
+                                    height: 45,
+                                    decoration: BoxDecoration(
+                                      color: Colors.green,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: const Center(
+                                      child: Text(
+                                        "Edit",
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.bold,
+                                        ),
                                       ),
                                     ),
-                                    Text(
-                                      'Gloves : ${ds["Gloves"]}',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                SizedBox(height: 10),
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      'Sm Box : ${ds["Sm_Box"]}',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    Text(
-                                      'Carton : ${ds["Carton"]}',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-
-                                SizedBox(height: 10),
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      'Sap Paper : ${ds["Sap_Paper"]}',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    Text(
-                                      'Bopp pouch : ${ds["Bopp_Pouch"]}',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-
-                                SizedBox(height: 10),
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      'Seal : ${ds["Seal"]}',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    Text(
-                                      'Sticker : ${ds["Sticker"]}',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                SizedBox(height: 10),
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      'tissue : ${ds["Tissue"]}',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-
-                                Text(
-                                  'Expected Cartons : ${ds["Delivered_Expected_carton"]}',
-                                  style: TextStyle(
-                                    color: const Color.fromARGB(255, 0, 0, 0),
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
                                   ),
                                 ),
                               ],
-                            ),
-                          ),
-                          GestureDetector(
-                            onTap: () {
-                              _deliveredEdit(context, ds.id);
-                            },
-                            child: Container(
-                              height: 50,
-                              margin: EdgeInsets.symmetric(horizontal: 20),
-                              width: MediaQuery.of(context).size.width,
-                              decoration: BoxDecoration(
-                                color: const Color.fromARGB(255, 195, 211, 16),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.edit, color: Colors.white),
-                                  SizedBox(width: 10),
-                                  Text(
-                                    "Edit",
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                              ),
                             ),
                           ),
                         ],
@@ -273,39 +246,24 @@ class _PackagerDetailViewState extends State<PackagerDetailView> {
         .collection("Deliver")
         .doc(id)
         .get();
-    TextEditingController cartonEditController = TextEditingController(
-      text: ds["Carton"].toString(),
-    );
-    TextEditingController glovesEditController = TextEditingController(
-      text: ds["Gloves"].toString(),
-    );
-    TextEditingController bagEditController = TextEditingController(
-      text: ds["Bags"].toString(),
-    );
-    TextEditingController smBoxEditController = TextEditingController(
-      text: ds["Sm_Box"].toString(),
-    );
-    TextEditingController sapPaperEditController = TextEditingController(
-      text: ds["Sap_Paper"].toString(),
-    );
-    TextEditingController sealEditController = TextEditingController(
-      text: ds["Seal"].toString(),
-    );
-    TextEditingController tissueEditController = TextEditingController(
-      text: ds["Tissue"].toString(),
-    );
-    TextEditingController boppPouchEditController = TextEditingController(
-      text: ds["Bopp_Pouch"].toString(),
-    );
-    TextEditingController stickerEditController = TextEditingController(
-      text: ds["Sticker"].toString(),
-    );
-    TextEditingController dateEditController = TextEditingController(
-      text: ds["Date"].toString(),
-    );
-    TextEditingController tapeEditController = TextEditingController(
-      text: ds["Tape"].toString(),
-    );
+        Map<String, dynamic> deliverData =
+    ds.data() as Map<String, dynamic>;
+
+    setState(() {
+      for (var docId in inventoryDocIds) {
+        
+
+controllers[docId] = TextEditingController(
+  text: (deliverData[docId] ?? 0).toString(),
+);
+
+      }
+      
+    });
+    final TextEditingController _dateController = TextEditingController(
+        text: ds["Date"],
+      );
+    
 
     showModalBottomSheet(
       context: context,
@@ -349,102 +307,28 @@ class _PackagerDetailViewState extends State<PackagerDetailView> {
 
                   SizedBox(height: 15),
                   TextField(
-                    controller: dateEditController,
+                    controller: _dateController,
                     decoration: InputDecoration(
                       labelText: "Date",
                       border: OutlineInputBorder(),
                     ),
                   ),
                   const SizedBox(height: 16),
-                  TextField(
-                    controller: bagEditController,
-                    decoration: InputDecoration(
-                      labelText: "Bags",
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  TextField(
-                    controller: smBoxEditController,
-                    decoration: InputDecoration(
-                      labelText: "Sm Box",
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  TextField(
-                    controller: sapPaperEditController,
-                    decoration: InputDecoration(
-                      labelText: "Sap Paper",
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  TextField(
-                    controller: sealEditController,
-                    decoration: InputDecoration(
-                      labelText: "Seal",
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  TextField(
-                    controller: tissueEditController,
-                    decoration: InputDecoration(
-                      labelText: "Tissue",
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  TextField(
-                    controller: glovesEditController,
-                    decoration: InputDecoration(
-                      labelText: "GLoves",
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  TextField(
-                    controller: cartonEditController,
-                    decoration: InputDecoration(
-                      labelText: "Cartton",
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  TextField(
-                    controller: boppPouchEditController,
-                    decoration: InputDecoration(
-                      labelText: "Bopp Pouch",
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  TextField(
-                    controller: stickerEditController,
-                    decoration: InputDecoration(
-                      labelText: "Sticker",
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  TextField(
-                    controller: tapeEditController,
-                    decoration: InputDecoration(
-                      labelText: "Tape",
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
+                 
+                  ...inventoryDocIds.map((e) {
+                    return Column(
+                      children: [
+                        TextField(
+                          controller: controllers[e],
+                          decoration: InputDecoration(
+                            labelText: e,
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                        SizedBox(height: 10,),
+                      ],
+                    );
+                  },),
 
                   const Spacer(),
                   AddButton(
@@ -456,24 +340,14 @@ class _PackagerDetailViewState extends State<PackagerDetailView> {
                           .collection("Deliver")
                           .doc(id)
                           .update({
-                            "Date": dateEditController.text,
-                            "Bags": int.tryParse(bagEditController.text) ?? 0,
-                            "Sm_Box":
-                                int.tryParse(smBoxEditController.text) ?? 0,
-                            "Sap_Paper":
-                                int.tryParse(sapPaperEditController.text) ?? 0,
-                            "Seal": int.tryParse(sealEditController.text) ?? 0,
-                            "Tissue":
-                                int.tryParse(tissueEditController.text) ?? 0,
-                            "Gloves":
-                                int.tryParse(glovesEditController.text) ?? 0,
-                            "Carton":
-                                int.tryParse(cartonEditController.text) ?? 0,
-                            "Bopp_Pouch":
-                                int.tryParse(boppPouchEditController.text) ?? 0,
-                            "Sticker":
-                                int.tryParse(stickerEditController.text) ?? 0,
-                            "Tape": int.tryParse(tapeEditController.text) ?? 0,
+                            ...inventoryDocIds.asMap().map((index, docId) {
+                              return MapEntry(
+                                docId,
+                                int.tryParse(controllers[docId]?.text ?? "0") ?? 0,
+                              );
+
+                            }),
+                            "Date":_dateController.text,
                           });
 
                       // Update the parent document (Packaging)
@@ -481,49 +355,18 @@ class _PackagerDetailViewState extends State<PackagerDetailView> {
                           .collection("Packaging")
                           .doc(widget.packagerName)
                           .update({
-                            "Gloves": FieldValue.increment(
-                              (int.tryParse(glovesEditController.text) ?? 0) -
-                                  (ds["Gloves"] ?? 0),
-                            ),
-                            "Bags": FieldValue.increment(
-                              (int.tryParse(bagEditController.text) ?? 0) -
-                                  (ds["Bags"] ?? 0),
-                            ),
-                            "Sm_Box": FieldValue.increment(
-                              (int.tryParse(smBoxEditController.text) ?? 0) -
-                                  (ds["Sm_Box"] ?? 0),
-                            ),
-                            "Sap_Paper": FieldValue.increment(
-                              (int.tryParse(sapPaperEditController.text) ?? 0) -
-                                  (ds["Sap_Paper"] ?? 0),
-                            ),
-                            "Seal": FieldValue.increment(
-                              (int.tryParse(sealEditController.text) ?? 0) -
-                                  (ds["Seal"] ?? 0),
-                            ),
-                            "Tissue": FieldValue.increment(
-                              (int.tryParse(tissueEditController.text) ?? 0) -
-                                  (ds["Tissue"] ?? 0),
-                            ),
-                            "Tape": FieldValue.increment(
-                              (int.tryParse(tapeEditController.text) ?? 0) -
-                                  (ds["Tape"] ?? 0),
-                            ),
-                            "Carton": FieldValue.increment(
-                              (int.tryParse(cartonEditController.text) ?? 0) -
-                                  (ds["Carton"] ?? 0),
-                            ),
-                            "Bopp_Pouch": FieldValue.increment(
-                              (int.tryParse(boppPouchEditController.text) ??
-                                      0) -
-                                  (ds["Bopp_Pouch"] ?? 0),
-                            ),
-                            "Sticker": FieldValue.increment(
-                              (int.tryParse(stickerEditController.text) ?? 0) -
-                                  (ds["Sticker"] ?? 0),
-                            ),
-                            "Delivered_Expected_carton":
-                                0, // You can set this to whatever value you want
+                            ...inventoryDocIds.asMap().map((key, value) {
+                              String docId = value;
+                              int newValue = int.tryParse(controllers[docId]?.text ?? "0") ?? 0;
+                              int oldValue = deliverData[docId] ?? 0;
+
+                              return MapEntry(
+                                docId,
+                                FieldValue.increment(newValue - oldValue),
+                              );
+                            },),
+                            
+                            // You can set this to whatever value you want
                           });
                       Navigator.pop(context);
                     },

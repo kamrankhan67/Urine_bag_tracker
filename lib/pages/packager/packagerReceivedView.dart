@@ -59,8 +59,10 @@ class _PackagerRecievedViewState extends State<PackagerRecievedView> {
               StreamBuilder(
                 stream: FirebaseFirestore.instance
                     .collection("Packaging")
-                    .doc(widget.packagerName) // Ensure this is properly initialized
-                    .collection("Recieved")
+                    .doc(
+                      widget.packagerName,
+                    ) // Ensure this is properly initialized
+                    .collection("Received")
                     .snapshots(),
                 builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
@@ -81,107 +83,150 @@ class _PackagerRecievedViewState extends State<PackagerRecievedView> {
                       return Column(
                         children: [
                           Container(
-                            padding: EdgeInsets.all(10),
-                            margin: EdgeInsets.only(
-                              right: 20,
-                              left: 20,
-                              top: 20,
-                              bottom: 5,
+                            
+                            padding: const EdgeInsets.all(12),
+                            margin: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 10,
                             ),
                             width: MediaQuery.of(context).size.width,
-                            decoration: BoxDecoration(color: Colors.grey),
+                            decoration: BoxDecoration(
+                              color: const Color.fromARGB(255, 11, 20, 52),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                             child: Column(
                               children: [
-                                // Container(
-                                //   margin: EdgeInsets.only(left: 20),
-                                //   width: 150,
-                                //   height: 40,
-                                //   decoration: BoxDecoration(
-                                //     color: Colors.blueGrey,
-                                //     borderRadius: BorderRadius.circular(35),
-                                //   ),
-                                //   child: Center(
-                                //     child: Text(
-                                //       'Received',
-                                //       style: TextStyle(
-                                //         color: Colors.white,
-                                //         fontWeight: FontWeight.bold,
-                                //         fontSize: 17,
-                                //       ),
-                                //     ),
-                                //   ),
-                                // ),
-                                Text(
-                                  'Date : ${ds["Date"]}',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.bold,
+                                
+                                Center(
+                                  child: Text(
+                                    'Date : ${ds["Date"] ?? 0}',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 17,
+                                    ),
                                   ),
                                 ),
-                                SizedBox(height: 10),
-                                Text(
-                                  'Carton : ${ds["Received_carton"]}',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                                SizedBox(height: 15),
+                                
+                                GridView(
+                                  shrinkWrap: true,
+                                  physics: NeverScrollableScrollPhysics(),
+                                  gridDelegate:
+                                      SliverGridDelegateWithFixedCrossAxisCount(
+                                        crossAxisCount: 2,
+                                        childAspectRatio: 3.2,
+                                        mainAxisSpacing: 8,
+                                        crossAxisSpacing: 8,
+                                      ),
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.blueGrey.shade700,
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Center(
+                                        child: Text(
+                                          "Carton : ${ds["Received_carton"] ?? 0}",
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.blueGrey.shade700,
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Center(
+                                        child: Text(
+                                          "Boxes : ${ds["Received_box"] ?? 0}",
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.blueGrey.shade700,
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Center(
+                                        child: Text(
+                                          "Pieces : ${ds["Received_pieces"] ?? 0}",
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.blueGrey.shade700,
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Center(
+                                        child: Text(
+                                          "Status : ${ds["Status"] ?? 0}",
+                                          style: const TextStyle(
+                                            color: Color.fromARGB(
+                                              255,
+                                              239,
+                                              133,
+                                              133,
+                                            ),
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                Text(
-                                  'Boxes : ${ds["Received_box"]}',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                Text(
-                                  'Pieces : ${ds["Received_peices"]}',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                Text(
-                                  "${ds["Status"]}",
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    color: const Color.fromARGB(255, 255, 0, 0),
-                                    fontWeight: FontWeight.bold,
+                                SizedBox(height: 20),
+                                GestureDetector(
+                                  onTap: () {
+                                    _editReceived(context, ds.id);
+                                  },
+                                  child: Container(
+                                    height: 45,
+                                    decoration: BoxDecoration(
+                                      color: Colors.green,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: const Center(
+                                      child: Text(
+                                        "Edit",
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ],
-                            ),
-                          ),
-                          SizedBox(width: 5),
-                          GestureDetector(
-                            onTap: () {
-                              _editReceived(context, ds.id);
-                            },
-                            child: Container(
-                              height: 50,
-                              margin: EdgeInsets.symmetric(horizontal: 20),
-                              width: MediaQuery.of(context).size.width,
-                              decoration: BoxDecoration(
-                                color: const Color.fromARGB(255, 195, 211, 16),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.edit, color: Colors.white),
-                                  SizedBox(width: 10),
-                                  Text(
-                                    "Edit",
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                              ),
                             ),
                           ),
                         ],
@@ -198,7 +243,6 @@ class _PackagerRecievedViewState extends State<PackagerRecievedView> {
   }
 
   void _editReceived(BuildContext context, String id) async {
-    
     DocumentSnapshot ds = await FirebaseFirestore.instance
         .collection("Packaging")
         .doc(widget.packagerName)
@@ -206,9 +250,15 @@ class _PackagerRecievedViewState extends State<PackagerRecievedView> {
         .doc(id)
         .get();
 
-        TextEditingController dateController = TextEditingController(text: ds["Date"]);
-  TextEditingController cartonController = TextEditingController(text: ds["Received_carton"].toString());
-  TextEditingController statusController = TextEditingController(text: ds["Status"]);
+    TextEditingController dateController = TextEditingController(
+      text: ds["Date"],
+    );
+    TextEditingController cartonController = TextEditingController(
+      text: ds["Received_carton"].toString(),
+    );
+    TextEditingController statusController = TextEditingController(
+      text: ds["Status"],
+    );
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -275,17 +325,42 @@ class _PackagerRecievedViewState extends State<PackagerRecievedView> {
                   ),
                   const SizedBox(height: 16),
                   const Spacer(),
-                  AddButton(fn: (){
-                    FirebaseFirestore.instance.collection("Packaging").doc(widget.packagerName).collection("Recieved").doc(id).update({
-                      "Date": dateController.text,
-                      "Received_carton": int.parse(cartonController.text),
-                      "Received_box": int.parse(cartonController.text)*48,
-                      "Received_peices": int.parse(cartonController.text)*144,
-                      "Status": statusController.text,
-                    }).then((value) {
-                      Navigator.pop(context);
-                    });
-                  }),
+                  AddButton(
+                    fn: () async {
+                      await FirebaseFirestore.instance
+                          .collection("Packaging")
+                          .doc(widget.packagerName)
+                          .collection("Received")
+                          .doc(id)
+                          .update({
+                            "Date": dateController.text,
+                            "Received_carton": int.parse(cartonController.text),
+                            "Received_box":
+                                int.parse(cartonController.text) * 48,
+                            "Received_pieces":
+                                int.parse(cartonController.text) * 144,
+                            "Status": statusController.text,
+                          });
+                      await FirebaseFirestore.instance
+                          .collection("Packaging")
+                          .doc(widget.packagerName)
+                          .update({
+                            "Received Carton": FieldValue.increment(
+                              int.parse(cartonController.text) -
+                                  ds["Received_carton"],
+                            ),
+                            "Boxes": FieldValue.increment(
+                              (int.parse(cartonController.text) * 48) -
+                                  ds["Received_box"],
+                            ),
+                            "Pieces": FieldValue.increment(
+                              (int.parse(cartonController.text) * 144) -
+                                  ds["Received_pieces"],
+                            ),
+                          })
+                          .then((value) => Navigator.pop(context));
+                    },
+                  ),
                 ],
               ),
             ),

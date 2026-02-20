@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:urine_bag/pages/notebook/notebook.dart';
 
 class Authentication extends StatelessWidget {
   const Authentication({super.key});

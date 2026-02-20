@@ -1,6 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:urine_bag/firebase_options.dart';
+import 'package:urine_bag/commons/firebase_options.dart';
 import 'package:urine_bag/pages/home/home.dart';
 
 void main() async {

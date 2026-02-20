@@ -176,7 +176,7 @@ class _SupplierState extends State<Supplier> {
     return Container(
       decoration: BoxDecoration(
         color: const Color.fromRGBO(84, 119, 146, 1),
-        borderRadius: BorderRadius.circular(15),
+        borderRadius: BorderRadius.circular(10),
       ),
       width: MediaQuery.of(context).size.width,
       height: 50,
@@ -209,6 +209,8 @@ class _SupplierState extends State<Supplier> {
         "quantity":0,
         "expected cartton":0,
         "value":0,
+        "total value":0,
+        "total quantity":0,
         
       });
       Navigator.pop(context);
