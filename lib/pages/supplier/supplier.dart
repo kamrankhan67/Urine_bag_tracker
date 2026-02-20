@@ -199,28 +199,73 @@ class _SupplierState extends State<Supplier> {
     );
   }
 
-  void _addSupply(String text, BuildContext context) async {
-    if (text.isNotEmpty) {
-      await FirebaseFirestore.instance.collection("Supplier").doc(text).set({
-        "name": text,
-      });
-       await FirebaseFirestore.instance.collection("Inventory").doc(text).set({
-        "name": text,
-        "quantity":0,
-        "expected cartton":0,
-        "value":0,
-        "total value":0,
-        "total quantity":0,
-        
-      });
-      Navigator.pop(context);
-    } else {
-      
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+  Future<void> _addSupply(String text, BuildContext context) async {
+  String supplierName = text.trim();
+
+  if (supplierName.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
         content: Text("Supplier name cannot be empty."),
-      ));
-    }
+      ),
+    );
+    return;
   }
+
+  try {
+    DocumentReference supplierRef =
+        FirebaseFirestore.instance.collection("Supplier").doc(supplierName);
+
+    DocumentSnapshot existingSupplier = await supplierRef.get();
+
+    if (existingSupplier.exists) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Supplier already exists."),
+        ),
+      );
+      return;
+    }
+
+    // Create Supplier
+    await supplierRef.set({
+      "name": supplierName,
+      "created_at": FieldValue.serverTimestamp(),
+    });
+
+    // Create Inventory entry
+    await FirebaseFirestore.instance
+        .collection("Inventory")
+        .doc(supplierName)
+        .set({
+      "name": supplierName,
+      "quantity": 0,
+      "expected_carton": 0,
+      "value": 0,
+      "total_value": 0,
+      "total_quantity": 0,
+      "created_at": FieldValue.serverTimestamp(),
+    });
+
+    if (!mounted) return;
+
+    Navigator.pop(context);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Supplier added successfully!"),
+      ),
+    );
+  } catch (e) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text("Error: ${e.toString()}"),
+      ),
+    );
+  }
+}
+
 }
 
 

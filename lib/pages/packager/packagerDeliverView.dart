@@ -13,7 +13,6 @@ class PackagerDetailView extends StatefulWidget {
 class _PackagerDetailViewState extends State<PackagerDetailView> {
   Map<String, TextEditingController> controllers = {};
   List<String> inventoryDocIds = [];
-  final TextEditingController _dateController = TextEditingController();
 
   @override
   void initState() {
@@ -123,7 +122,6 @@ class _PackagerDetailViewState extends State<PackagerDetailView> {
 
                       return Column(
                         children: [
-                          
                           Container(
                             padding: const EdgeInsets.all(12),
                             margin: const EdgeInsets.symmetric(
@@ -239,6 +237,144 @@ class _PackagerDetailViewState extends State<PackagerDetailView> {
     );
   }
 
+  //   void _deliveredEdit(BuildContext context, String id) async {
+  //     DocumentSnapshot ds = await FirebaseFirestore.instance
+  //         .collection("Packaging")
+  //         .doc(widget.packagerName)
+  //         .collection("Deliver")
+  //         .doc(id)
+  //         .get();
+  //         Map<String, dynamic> deliverData =
+  //     ds.data() as Map<String, dynamic>;
+
+  //     setState(() {
+  //       for (var docId in inventoryDocIds) {
+
+  // controllers[docId] = TextEditingController(
+  //   text: (deliverData[docId] ?? 0).toString(),
+  // );
+
+  //       }
+
+  //     });
+  //     final TextEditingController _dateController = TextEditingController(
+  //         text: ds["Date"],
+  //       );
+
+  //     showModalBottomSheet(
+  //       context: context,
+  //       isScrollControlled: true,
+  //       shape: const RoundedRectangleBorder(
+  //         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+  //       ),
+  //       builder: (context) {
+  //         return SingleChildScrollView(
+  //           physics: BouncingScrollPhysics(),
+
+  //           child: Padding(
+  //             padding: EdgeInsets.only(
+  //               bottom: MediaQuery.of(context).viewInsets.bottom,
+  //             ),
+  //             child: Container(
+  //               padding: const EdgeInsets.all(16),
+  //               margin: EdgeInsets.symmetric(horizontal: 20),
+  //               height: MediaQuery.of(context).size.height * 1.33,
+  //               child: Column(
+  //                 crossAxisAlignment: CrossAxisAlignment.center,
+  //                 children: [
+  //                   Center(
+  //                     child: Container(
+  //                       width: 40,
+  //                       height: 5,
+  //                       margin: const EdgeInsets.only(bottom: 16),
+  //                       decoration: BoxDecoration(
+  //                         color: Colors.grey[400],
+  //                         borderRadius: BorderRadius.circular(10),
+  //                       ),
+  //                     ),
+  //                   ),
+
+  //                   const Text(
+  //                     "Edit Deliver ",
+  //                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+  //                   ),
+
+  //                   const SizedBox(height: 16),
+
+  //                   SizedBox(height: 15),
+  //                   TextField(
+  //                     controller: _dateController,
+  //                     decoration: InputDecoration(
+  //                       labelText: "Date",
+  //                       border: OutlineInputBorder(),
+  //                     ),
+  //                   ),
+  //                   const SizedBox(height: 16),
+
+  //                   ...inventoryDocIds.map((e) {
+  //                     return Column(
+  //                       children: [
+  //                         TextField(
+  //                           controller: controllers[e],
+  //                           decoration: InputDecoration(
+  //                             labelText: e,
+  //                             border: OutlineInputBorder(),
+  //                           ),
+  //                         ),
+  //                         SizedBox(height: 10,),
+  //                       ],
+  //                     );
+  //                   },),
+
+  //                   const Spacer(),
+  //                   AddButton(
+  //                     fn: () async {
+  //                       // Update the individual document first
+  //                       await FirebaseFirestore.instance
+  //                           .collection("Packaging")
+  //                           .doc(widget.packagerName)
+  //                           .collection("Deliver")
+  //                           .doc(id)
+  //                           .update({
+  //                             ...inventoryDocIds.asMap().map((index, docId) {
+  //                               return MapEntry(
+  //                                 docId,
+  //                                 int.tryParse(controllers[docId]?.text ?? "0") ?? 0,
+  //                               );
+
+  //                             }),
+  //                             "Date":_dateController.text,
+  //                           });
+
+  //                       // Update the parent document (Packaging)
+  //                       await FirebaseFirestore.instance
+  //                           .collection("Packaging")
+  //                           .doc(widget.packagerName)
+  //                           .update({
+  //                             ...inventoryDocIds.asMap().map((key, value) {
+  //                               String docId = value;
+  //                               int newValue = int.tryParse(controllers[docId]?.text ?? "0") ?? 0;
+  //                               int oldValue = deliverData[docId] ?? 0;
+
+  //                               return MapEntry(
+  //                                 docId,
+  //                                 FieldValue.increment(newValue - oldValue),
+  //                               );
+  //                             },),
+
+  //                             // You can set this to whatever value you want
+  //                           });
+  //                       Navigator.pop(context);
+  //                     },
+  //                   ),
+  //                 ],
+  //               ),
+  //             ),
+  //           ),
+  //         );
+  //       },
+  //     );
+  //   }
   void _deliveredEdit(BuildContext context, String id) async {
     DocumentSnapshot ds = await FirebaseFirestore.instance
         .collection("Packaging")
@@ -246,24 +382,23 @@ class _PackagerDetailViewState extends State<PackagerDetailView> {
         .collection("Deliver")
         .doc(id)
         .get();
-        Map<String, dynamic> deliverData =
-    ds.data() as Map<String, dynamic>;
 
+    if (!ds.exists) return;
+
+    Map<String, dynamic> deliverData = ds.data() as Map<String, dynamic>;
+
+    // Initialize controllers
     setState(() {
       for (var docId in inventoryDocIds) {
-        
-
-controllers[docId] = TextEditingController(
-  text: (deliverData[docId] ?? 0).toString(),
-);
-
+        controllers[docId] = TextEditingController(
+          text: (deliverData[docId] ?? 0).toString(),
+        );
       }
-      
     });
+
     final TextEditingController _dateController = TextEditingController(
-        text: ds["Date"],
-      );
-    
+      text: ds["Date"] ?? "",
+    );
 
     showModalBottomSheet(
       context: context,
@@ -273,110 +408,125 @@ controllers[docId] = TextEditingController(
       ),
       builder: (context) {
         return SingleChildScrollView(
-          physics: BouncingScrollPhysics(),
-
+          physics: const BouncingScrollPhysics(),
           child: Padding(
             padding: EdgeInsets.only(
               bottom: MediaQuery.of(context).viewInsets.bottom,
             ),
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              margin: EdgeInsets.symmetric(horizontal: 20),
-              height: MediaQuery.of(context).size.height * 1.33,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 40,
-                      height: 5,
-                      margin: const EdgeInsets.only(bottom: 16),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[400],
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                  ),
-
-                  const Text(
-                    "Edit Deliver ",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  SizedBox(height: 15),
-                  TextField(
-                    controller: _dateController,
-                    decoration: InputDecoration(
-                      labelText: "Date",
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                 
-                  ...inventoryDocIds.map((e) {
-                    return Column(
-                      children: [
-                        TextField(
-                          controller: controllers[e],
-                          decoration: InputDecoration(
-                            labelText: e,
-                            border: OutlineInputBorder(),
-                          ),
+            child: StatefulBuilder(
+              builder: (context, setModalState) {
+                bool isLoading = false;
+                return Container(
+                  padding: const EdgeInsets.all(16),
+                  margin: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      const SizedBox(height: 10),
+                      const Text(
+                        "Edit Deliver",
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
                         ),
-                        SizedBox(height: 10,),
-                      ],
-                    );
-                  },),
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: _dateController,
+                        decoration: const InputDecoration(
+                          labelText: "Date",
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
 
-                  const Spacer(),
-                  AddButton(
-                    fn: () async {
-                      // Update the individual document first
-                      await FirebaseFirestore.instance
-                          .collection("Packaging")
-                          .doc(widget.packagerName)
-                          .collection("Deliver")
-                          .doc(id)
-                          .update({
-                            ...inventoryDocIds.asMap().map((index, docId) {
-                              return MapEntry(
-                                docId,
-                                int.tryParse(controllers[docId]?.text ?? "0") ?? 0,
-                              );
+                      ...inventoryDocIds.map((e) {
+                        return Column(
+                          children: [
+                            TextField(
+                              controller: controllers[e],
+                              keyboardType: TextInputType.number,
+                              decoration: InputDecoration(
+                                labelText: e,
+                                border: const OutlineInputBorder(),
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                          ],
+                        );
+                      }).toList(),
 
-                            }),
-                            "Date":_dateController.text,
-                          });
+                      const SizedBox(height: 16),
 
-                      // Update the parent document (Packaging)
-                      await FirebaseFirestore.instance
-                          .collection("Packaging")
-                          .doc(widget.packagerName)
-                          .update({
-                            ...inventoryDocIds.asMap().map((key, value) {
-                              String docId = value;
-                              int newValue = int.tryParse(controllers[docId]?.text ?? "0") ?? 0;
-                              int oldValue = deliverData[docId] ?? 0;
+                      isLoading
+                          ? const CircularProgressIndicator()
+                          : AddButton(
+                              fn: () async {
+                                setModalState(() => isLoading = true);
 
-                              return MapEntry(
-                                docId,
-                                FieldValue.increment(newValue - oldValue),
-                              );
-                            },),
-                            
-                            // You can set this to whatever value you want
-                          });
-                      Navigator.pop(context);
-                    },
+                                try {
+                                  // Prepare updated values
+                                  Map<String, dynamic> updatedFields = {};
+                                  Map<String, dynamic> incrementFields = {};
+
+                                  for (var docId in inventoryDocIds) {
+                                    int newValue =
+                                        int.tryParse(
+                                          controllers[docId]?.text ?? "0",
+                                        ) ??
+                                        0;
+                                    int oldValue = deliverData[docId] ?? 0;
+                                    updatedFields[docId] = newValue;
+                                    incrementFields[docId] =
+                                        FieldValue.increment(
+                                          newValue - oldValue,
+                                        );
+                                  }
+
+                                  updatedFields["Date"] = _dateController.text;
+
+                                  // Update Deliver subcollection
+                                  await FirebaseFirestore.instance
+                                      .collection("Packaging")
+                                      .doc(widget.packagerName)
+                                      .collection("Deliver")
+                                      .doc(id)
+                                      .update(updatedFields);
+
+                                  // Update parent Packaging document
+                                  await FirebaseFirestore.instance
+                                      .collection("Packaging")
+                                      .doc(widget.packagerName)
+                                      .update(incrementFields);
+
+                                  Navigator.pop(context);
+                                } catch (e) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        "Error updating deliver: $e",
+                                      ),
+                                    ),
+                                  );
+                                }
+
+                                setModalState(() => isLoading = false);
+                              },
+                            ),
+                    ],
                   ),
-                ],
-              ),
+                );
+              },
             ),
           ),
         );
       },
-    );
+    ).whenComplete(() {
+      // Dispose controllers when bottom sheet closes
+      for (var c in controllers.values) {
+        c.dispose();
+      }
+      controllers.clear();
+    });
   }
 }

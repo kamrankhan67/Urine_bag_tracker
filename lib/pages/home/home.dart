@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:urine_bag/commons/addButton.dart';
 import 'package:urine_bag/commons/home_button.dart';
 import 'package:urine_bag/pages/auth/authentication.dart';
-import 'package:urine_bag/pages/home/home.dart';
 import 'package:urine_bag/pages/inventory/inventory.dart';
 import 'package:urine_bag/pages/packager/packager.dart';
 import 'package:urine_bag/pages/supplier/supplier.dart';
@@ -16,7 +15,7 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
-  static  int readyBags=0 ;
+  static int readyBags = 0;
   Map<String, TextEditingController> controllers = {};
   List<String> inventoryDocIds = [];
   final TextEditingController _dateController = TextEditingController();
@@ -87,32 +86,35 @@ class _HomeState extends State<Home> {
   }
 
   Future<void> _sendData() async {
+    if (selectedItem == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Please select a packager")));
+      return;
+    }
+
     try {
       Map<String, dynamic> dataToSend = {};
-      print("Data to send$dataToSend");
 
-      // Loop through all controllers and prepare the data
       controllers.forEach((docId, controller) {
-        print("Controller for $docId: ${controller.text}");
-        int value =
-            int.tryParse(controller.text) ?? 0; // Default to 0 if invalid
+        int value = int.tryParse(controller.text.trim()) ?? 0;
+        if (value < 0) value = 0; // prevent negative send
         dataToSend[docId] = value;
-        print("docId: $docId, value: $value");
       });
 
-      // Save data to Firebase under the selected packager
-      await FirebaseFirestore.instance
+      DocumentReference packagingRef = FirebaseFirestore.instance
           .collection('Packaging')
-          .doc(selectedItem)
-          .collection("Deliver")
-          .doc()
-          .set({
-            'Actual Date': DateTime.now(),
-            'Date': _dateController.text,
-            'Delivered Expected Carton': 0,
-            ...dataToSend, // Add all document data as key-value pairs
-          });
+          .doc(selectedItem);
 
+      // Save deliver record
+      await packagingRef.collection("Deliver").doc().set({
+        'Actual Date': DateTime.now(),
+        'Date': _dateController.text.trim(),
+        'Delivered Expected Carton': 0,
+        ...dataToSend,
+      });
+
+      // Update inventory using transactions
       for (var entry in dataToSend.entries) {
         if (entry.value > 0) {
           await FirebaseFirestore.instance.runTransaction((transaction) async {
@@ -122,59 +124,74 @@ class _HomeState extends State<Home> {
 
             DocumentSnapshot snapshot = await transaction.get(invRef);
 
-            if (!snapshot.exists) return;
+            if (!snapshot.exists) {
+              throw Exception("Inventory item ${entry.key} does not exist.");
+            }
 
-            // Update inventory atomically
+            int currentQty = snapshot.get("quantity") ?? 0;
+
+            if (currentQty < entry.value) {
+              throw Exception(
+                "Not enough stock for ${entry.key}. Available: $currentQty",
+              );
+            }
+
             transaction.update(invRef, {
               "quantity": FieldValue.increment(-entry.value),
             });
 
-            // Add ledger entry
             DocumentReference ledgerRef = invRef.collection("Ledger").doc();
 
             transaction.set(ledgerRef, {
-              "Date": _dateController.text,
+              "Date": _dateController.text.trim(),
               "Quantity": "-${entry.value}",
               "Color": "Red",
               "Description": selectedItem!,
+              "Timestamp": FieldValue.serverTimestamp(),
             });
           });
         }
       }
 
-      await FirebaseFirestore.instance
-          .collection('Packaging')
-          .doc(selectedItem)
-          .update({
-            ...dataToSend.map((key, value) {
-              return MapEntry(key, FieldValue.increment(value));
-            }),
-          });
+      // Update packaging totals
+      await packagingRef.update({
+        ...dataToSend.map((key, value) {
+          return MapEntry(key, FieldValue.increment(value));
+        }),
+      });
+
+      if (!mounted) return;
 
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text("Data sent successfully!")));
-    } catch (e) {
-      print("Error sending data: $e");
-    }
+      ).showSnackBar(const SnackBar(content: Text("Data sent successfully!")));
 
-    Navigator.pop(context);
+      Navigator.pop(context);
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Error: ${e.toString()}")));
+    }
   }
 
   @override
   void dispose() {
-    // Dispose of all controllers to avoid memory leaks
-    controllers.forEach((key, controller) {
-      controller.dispose();
-    });
+    // Dispose inventory controllers
+    controllers.forEach((key, controller) => controller.dispose());
+
+    // Dispose bottom sheet controllers
+    _dateController.dispose();
+    _recievedCartonController.dispose();
+    _recievedDateController.dispose();
+    _statusController.dispose();
+
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    print("RecievedSelectedItem$receivedSelectedItem");
-    print("Selected item $selectedItem");
-
     return Scaffold(
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.black,
@@ -236,7 +253,7 @@ class _HomeState extends State<Home> {
                   _homeContainer(
                     "Ready Bags",
                     '$readyBags',
-                    '${readyBags*48}',
+                    '${readyBags * 48}',
                     Color.fromRGBO(41, 99, 116, 1),
                     context,
                   ),
@@ -330,11 +347,24 @@ class _HomeState extends State<Home> {
                                     SizedBox(height: 15),
                                     TextField(
                                       controller: _dateController,
+                                      readOnly: true,
                                       decoration: InputDecoration(
                                         labelText: "Date",
                                         border: OutlineInputBorder(),
                                       ),
-                                      keyboardType: TextInputType.datetime,
+                                      onTap: () async {
+                                        DateTime? picked = await showDatePicker(
+                                          context: context,
+                                          initialDate: DateTime.now(),
+                                          firstDate: DateTime(2020),
+                                          lastDate: DateTime(2100),
+                                        );
+
+                                        if (picked != null) {
+                                          _dateController.text =
+                                              "${picked.day}/${picked.month}/${picked.year}";
+                                        }
+                                      },
                                     ),
                                     ...inventoryDocIds.map((docId) {
                                       return Container(
@@ -479,12 +509,26 @@ class _HomeState extends State<Home> {
                                     SizedBox(height: 15),
                                     TextField(
                                       controller: _recievedDateController,
+                                      readOnly: true,
                                       decoration: InputDecoration(
                                         labelText: "Date",
                                         border: OutlineInputBorder(),
                                       ),
-                                      keyboardType: TextInputType.datetime,
+                                      onTap: () async {
+                                        DateTime? picked = await showDatePicker(
+                                          context: context,
+                                          initialDate: DateTime.now(),
+                                          firstDate: DateTime(2020),
+                                          lastDate: DateTime(2100),
+                                        );
+
+                                        if (picked != null) {
+                                          _recievedDateController.text =
+                                              "${picked.day}/${picked.month}/${picked.year}";
+                                        }
+                                      },
                                     ),
+
                                     const SizedBox(height: 16),
 
                                     TextField(
@@ -661,40 +705,64 @@ class _HomeState extends State<Home> {
     );
   }
 
-  void _recievedItem(
+  Future<void> _recievedItem(
     String date,
     String name,
-
     int carton,
-
     String status,
-
     BuildContext context,
   ) async {
-    await FirebaseFirestore.instance
-        .collection("Packaging")
-        .doc(name)
-        .collection("Received")
-        .doc()
-        .set({
-          "Date": date,
-          "Received_carton": carton,
-          "Received_pieces": carton * 144,
-          "Received_box": carton * 48,
-          "Status": status,
-        });
-   setState(() {
-      readyBags += carton;
-   });
+    if (name.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Invalid packager name")));
+      return;
+    }
 
-    await FirebaseFirestore.instance
-        .collection("Packaging")
-        .doc(name)
-        .update({
-          "Received Carton": FieldValue.increment(carton),
-          "Pieces": FieldValue.increment(carton * 144),
-          "Boxes": FieldValue.increment(carton * 48),
-        })
-        .then((value) => Navigator.pop(context));
+    if (carton <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Carton must be greater than 0")),
+      );
+      return;
+    }
+
+    try {
+      DocumentReference packagingRef = FirebaseFirestore.instance
+          .collection("Packaging")
+          .doc(name);
+
+      await packagingRef.collection("Received").doc().set({
+        "Date": date.trim(),
+        "Received_carton": carton,
+        "Received_pieces": carton * 144,
+        "Received_box": carton * 48,
+        "Status": status.trim(),
+        "Timestamp": FieldValue.serverTimestamp(),
+      });
+
+      await packagingRef.update({
+        "Received Carton": FieldValue.increment(carton),
+        "Pieces": FieldValue.increment(carton * 144),
+        "Boxes": FieldValue.increment(carton * 48),
+      });
+
+      if (!mounted) return;
+
+      setState(() {
+        readyBags += carton;
+      });
+
+      Navigator.pop(context);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Received item added successfully!")),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Error: ${e.toString()}")));
+    }
   }
 }

@@ -217,18 +217,80 @@ class _SupplierDetailState extends State<SupplierDetail> {
     );
   }
 
-  void _addSupply(
-    String name,
-    String loc,
-    String ph,
+ Future<void> _addSupply(
+  String name,
+  String loc,
+  String ph,
+  BuildContext context,
+) async {
+  String supplierName = name.trim();
+  String location = loc.trim();
+  String phone = ph.trim();
 
-    BuildContext context,
-  ) async {
-    await FirebaseFirestore.instance.collection("SuplierDetail").doc(name).set({
-      "location": loc,
-      "phone": ph,
-      "item": widget.supplyItem,
-    });
-    Navigator.pop(context);
+  if (supplierName.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Supplier name cannot be empty.")),
+    );
+    return;
   }
+
+  if (location.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Location cannot be empty.")),
+    );
+    return;
+  }
+
+  if (phone.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Phone number cannot be empty.")),
+    );
+    return;
+  }
+
+  // Basic phone validation (digits only, 7–15 length)
+  if (!RegExp(r'^[0-9]{7,15}$').hasMatch(phone)) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Enter a valid phone number.")),
+    );
+    return;
+  }
+
+  try {
+    DocumentReference ref = FirebaseFirestore.instance
+        .collection("SuplierDetail")
+        .doc(supplierName);
+
+    DocumentSnapshot existing = await ref.get();
+
+    if (existing.exists) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Supplier already exists.")),
+      );
+      return;
+    }
+
+    await ref.set({
+      "location": location,
+      "phone": phone,
+      "item": widget.supplyItem,
+      "created_at": FieldValue.serverTimestamp(),
+    });
+
+    if (!mounted) return;
+
+    Navigator.pop(context);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Supplier added successfully!")),
+    );
+  } catch (e) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Error: ${e.toString()}")),
+    );
+  }
+}
+
 }

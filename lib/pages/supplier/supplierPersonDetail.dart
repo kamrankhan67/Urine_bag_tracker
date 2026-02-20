@@ -16,13 +16,22 @@ class SupplierPersonDetail extends StatefulWidget {
 }
 
 class _SupplierPersonDetailState extends State<SupplierPersonDetail> {
+  final TextEditingController _balController = TextEditingController();
+  final TextEditingController _itemController = TextEditingController();
+  final TextEditingController _dateController = TextEditingController();
+  final TextEditingController _quantityController = TextEditingController();
+
+  @override
+  void dispose() {
+    _balController.dispose();
+    _itemController.dispose();
+    _dateController.dispose();
+    _quantityController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final TextEditingController _balController = TextEditingController();
-    final TextEditingController _itemController = TextEditingController();
-    final TextEditingController _dateController = TextEditingController();
-    final TextEditingController _quantityController = TextEditingController();
-
     return Scaffold(
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.black,
@@ -65,13 +74,34 @@ class _SupplierPersonDetailState extends State<SupplierPersonDetail> {
                         ),
                       ),
                       const SizedBox(height: 16),
+                      // TextField(
+                      //   controller: _dateController,
+                      //   decoration: InputDecoration(
+                      //     labelText: "Date",
+                      //     border: OutlineInputBorder(),
+                      //   ),
+                      //   keyboardType: TextInputType.datetime,
+                      // ),
                       TextField(
                         controller: _dateController,
+                        readOnly: true,
                         decoration: InputDecoration(
                           labelText: "Date",
                           border: OutlineInputBorder(),
                         ),
-                        keyboardType: TextInputType.datetime,
+                        onTap: () async {
+                          DateTime? picked = await showDatePicker(
+                            context: context,
+                            initialDate: DateTime.now(),
+                            firstDate: DateTime(2020),
+                            lastDate: DateTime(2100),
+                          );
+
+                          if (picked != null) {
+                            _dateController.text =
+                                "${picked.day}/${picked.month}/${picked.year}";
+                          }
+                        },
                       ),
                       const SizedBox(height: 12),
                       TextField(
@@ -103,14 +133,42 @@ class _SupplierPersonDetailState extends State<SupplierPersonDetail> {
                       const SizedBox(height: 12),
                       const Spacer(),
                       AddButton(
-                        fn: () => _addSupplyDetail(
-                          widget.personName,
-                          _dateController.text,
-                          int.parse(_quantityController.text),
-                          _itemController.text,
-                          int.parse(_balController.text),
-                          context,
-                        ),
+                        fn: () {
+                          if (_dateController.text.isEmpty ||
+                              _quantityController.text.isEmpty ||
+                              _itemController.text.isEmpty ||
+                              _balController.text.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text("Please fill all fields"),
+                              ),
+                            );
+                            return;
+                          }
+
+                          final quantity = int.tryParse(
+                            _quantityController.text,
+                          );
+                          final balance = int.tryParse(_balController.text);
+
+                          if (quantity == null || balance == null) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text("Enter valid numbers"),
+                              ),
+                            );
+                            return;
+                          }
+
+                          _addSupplyDetail(
+                            widget.personName,
+                            _dateController.text,
+                            quantity,
+                            _itemController.text,
+                            balance,
+                            context,
+                          );
+                        },
                       ),
                     ],
                   ),
@@ -262,7 +320,12 @@ class _SupplierPersonDetailState extends State<SupplierPersonDetail> {
                                   children: [
                                     Text('Per Piece Price '),
                                     Spacer(),
-                                    Text("${ds['balance'] / ds['quantity']}"),
+                                    Text(
+                                      ds['quantity'] != 0
+                                          ? (ds['balance'] / ds['quantity'])
+                                                .toStringAsFixed(2)
+                                          : "0",
+                                    ),
                                   ],
                                 ),
                                 Text(
@@ -327,6 +390,5 @@ class _SupplierPersonDetailState extends State<SupplierPersonDetail> {
           "total value": FieldValue.increment(bal),
         })
         .then((value) => Navigator.pop(context));
-    
   }
 }

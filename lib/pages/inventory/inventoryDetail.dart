@@ -1,13 +1,321 @@
+// import 'package:cloud_firestore/cloud_firestore.dart';
+// import 'package:flutter/material.dart';
+
+// class InventoryDetail extends StatelessWidget {
+//   const InventoryDetail({super.key, required this.item});
+//   final DocumentSnapshot<Object?> item;
+
+//   @override
+//   Widget build(BuildContext context) {
+//     Color getRowColor(String color) {
+//       switch (color) {
+//         case "Green":
+//           return Colors.green;
+//         case "Red":
+//           return Colors.red;
+//         default:
+//           return Colors.grey;
+//       }
+//     }
+
+//     return Scaffold(
+//       backgroundColor: const Color.fromRGBO(232, 226, 219, 1),
+//       body: SafeArea(
+//         child: SingleChildScrollView(
+//           physics: BouncingScrollPhysics(),
+//           child: Column(
+//             children: [
+//               Container(
+//                 height: 70,
+//                 padding: EdgeInsets.only(left: 20, top: 10, bottom: 10),
+//                 width: MediaQuery.of(context).size.width,
+//                 decoration: BoxDecoration(
+//                   color: Color.fromRGBO(26, 50, 99, 1),
+//                   borderRadius: BorderRadius.only(
+//                     bottomLeft: Radius.circular(10),
+//                     bottomRight: Radius.circular(10),
+//                   ),
+//                 ),
+//                 child: Center(
+//                   child: Row(
+//                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+//                     children: [
+//                       IconButton(
+//                         onPressed: () {
+//                           Navigator.pop(context);
+//                         },
+//                         icon: Icon(
+//                           Icons.arrow_back_rounded,
+//                           color: Colors.white,
+//                         ),
+//                       ),
+
+//                       Text(
+//                         item.id,
+//                         style: TextStyle(
+//                           color: Colors.white,
+//                           fontWeight: FontWeight.bold,
+//                           fontSize: 23,
+//                         ),
+//                       ),
+//                       SizedBox(width: MediaQuery.of(context).size.width / 6),
+//                     ],
+//                   ),
+//                 ),
+//               ),
+//               SizedBox(height: 20),
+//               Row(
+//                 mainAxisAlignment: MainAxisAlignment.spaceAround,
+//                 children: [
+//                   _inventoryDetailContainer(
+//                     "Total Qty",
+//                     item['total quantity'].toString(),
+//                     Color.fromRGBO(26, 50, 99, 1),
+//                     context,
+//                   ),
+//                   _inventoryDetailContainer(
+//                     "Total Value",
+//                     item["total value"].toString(),
+//                     const Color.fromRGBO(84, 119, 146, 1),
+//                     context,
+//                   ),
+//                 ],
+//               ),
+//               SizedBox(height: 10),
+//               Container(
+//                 padding: EdgeInsets.symmetric(horizontal: 30),
+//                 margin: EdgeInsets.only(top: 10, right: 20, left: 20),
+//                 width: double.infinity,
+//                 height: 70,
+//                 decoration: BoxDecoration(
+//                   //color: const Color.fromARGB(255, 16, 70, 91),
+//                   color: Colors.black,
+//                   borderRadius: BorderRadius.circular(10),
+//                 ),
+//                 child: Row(
+//                   mainAxisAlignment: MainAxisAlignment.center,
+//                   children: [
+//                     Text(
+//                       'Stock',
+//                       style: TextStyle(
+//                         color: Colors.white,
+//                         fontWeight: FontWeight.bold,
+//                         fontSize: 22
+//                       ),
+//                     ),
+//                     Spacer(),
+//                     Text(
+//                       item["quantity"].toString(),
+//                       style: TextStyle(
+//                         color: Colors.white,
+//                         fontWeight: FontWeight.bold,
+//                         fontSize: 22
+//                       ),
+//                     ),
+//                   ],
+//                 ),
+//               ),
+
+//               // Container(
+//               //   padding: EdgeInsets.symmetric(horizontal: 30),
+//               //   margin: EdgeInsets.only(top: 10, right: 20, left: 20),
+//               //   width: double.infinity,
+//               //   height: 50,
+//               //   decoration: BoxDecoration(
+//               //     color: Colors.black,
+//               //     borderRadius: BorderRadius.circular(10),
+//               //   ),
+//               //   child: Row(
+//               //     mainAxisAlignment: MainAxisAlignment.center,
+//               //     children: [
+//               //       Text(
+//               //         'Expected Carttons',
+//               //         style: TextStyle(
+//               //           color: Colors.white,
+//               //           fontWeight: FontWeight.bold,
+//               //         ),
+//               //       ),
+//               //       Spacer(),
+//               //       Text(
+//               //         item["expected cartton"].toString(),
+//               //         style: TextStyle(
+//               //           color: Colors.white,
+//               //           fontWeight: FontWeight.bold,
+//               //         ),
+//               //       ),
+//               //     ],
+//               //   ),
+//               // ),
+//               SizedBox(height: 20),
+//               Padding(
+//                 padding: const EdgeInsets.symmetric(horizontal: 20.0),
+//                 child: Table(
+//                   border: TableBorder.all(width: 1),
+//                   children: [
+//                     TableRow(
+//                       decoration: BoxDecoration(color: Colors.grey),
+//                       children: [
+//                         Center(
+//                           child: Text(
+//                             'Date',
+//                             style: TextStyle(fontWeight: FontWeight.bold),
+//                           ),
+//                         ),
+//                         Center(
+//                           child: Text(
+//                             'Quantity',
+//                             style: TextStyle(fontWeight: FontWeight.bold),
+//                           ),
+//                         ),
+//                         Center(
+//                           child: Text(
+//                             'Description',
+//                             style: TextStyle(fontWeight: FontWeight.bold),
+//                           ),
+//                         ),
+//                       ],
+//                     ),
+//                   ],
+//                 ),
+//               ),
+//               StreamBuilder<QuerySnapshot>(
+//                 stream: FirebaseFirestore.instance
+//                     .collection("Inventory")
+//                     .doc(item.id)
+//                     .collection("Ledger")
+//                     .snapshots(),
+//                 builder: (context, snapshot) {
+//                   if (snapshot.connectionState == ConnectionState.waiting) {
+//                     return const Center(
+//                       child: CircularProgressIndicator(color: Colors.lightBlue),
+//                     );
+//                   }
+//                   if (snapshot.hasError) {
+//                     return const Center(child: Text("Error loading records"));
+//                   }
+//                   if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+//                     return const Center(child: Text("No Record found"));
+//                   }
+
+//                   return ListView.builder(
+//                     physics: const NeverScrollableScrollPhysics(),
+//                     shrinkWrap: true,
+//                     itemCount: snapshot.data!.docs.length,
+//                     itemBuilder: (context, index) {
+//                       final ds = snapshot.data!.docs[index];
+//                       final Color rowColor = getRowColor(ds["Color"]);
+
+//                       return Padding(
+//                         padding: const EdgeInsets.symmetric(horizontal: 20.0),
+//                         child: Table(
+//                           border: TableBorder.all(width: 1),
+//                           children: [
+//                             TableRow(
+//                               decoration: BoxDecoration(color: rowColor),
+//                               children: [
+//                                 Center(
+//                                   child: Padding(
+//                                     padding: const EdgeInsets.all(8.0),
+//                                     child: Text(
+//                                       "${ds["Date"]}",
+//                                       style: const TextStyle(
+//                                         color: Colors.white,
+//                                       ),
+//                                     ),
+//                                   ),
+//                                 ),
+//                                 Center(
+//                                   child: Padding(
+//                                     padding: const EdgeInsets.all(8.0),
+//                                     child: Text(
+//                                       "${ds["Quantity"]}",
+//                                       style: const TextStyle(
+//                                         color: Colors.white,
+//                                         fontWeight: FontWeight.bold,
+//                                       ),
+//                                     ),
+//                                   ),
+//                                 ),
+//                                 Center(
+//                                   child: Padding(
+//                                     padding: const EdgeInsets.all(8.0),
+//                                     child: Text(
+//                                       "${ds["Description"]}",
+//                                       style: const TextStyle(
+//                                         color: Colors.white,
+//                                       ),
+//                                     ),
+//                                   ),
+//                                 ),
+//                               ],
+//                             ),
+//                           ],
+//                         ),
+//                       );
+//                     },
+//                   );
+//                 },
+//               ),
+//             ],
+//           ),
+//         ),
+//       ),
+//     );
+//   }
+
+//   Widget _inventoryDetailContainer(
+//     String text,
+//     String cartons,
+//     Color color,
+//     BuildContext context,
+//   ) {
+//     return Container(
+//       decoration: BoxDecoration(
+//         color: color,
+
+//         borderRadius: BorderRadius.circular(15),
+//       ),
+//       width: MediaQuery.of(context).size.width / 2.3,
+//       padding: EdgeInsets.all(20),
+//       child: Column(
+//         mainAxisAlignment: MainAxisAlignment.center,
+//         crossAxisAlignment: CrossAxisAlignment.center,
+//         children: [
+//           Text(
+//             text,
+//             style: TextStyle(
+//               fontWeight: FontWeight.bold,
+//               fontSize: 16,
+//               color: Colors.white,
+//             ),
+//           ),
+//           SizedBox(height: 10),
+//           Text(
+//             ' $cartons',
+//             style: TextStyle(
+//               fontSize: 15,
+//               fontWeight: FontWeight.bold,
+//               color: Colors.white,
+//             ),
+//           ),
+//         ],
+//       ),
+//     );
+//   }
+// }
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 class InventoryDetail extends StatelessWidget {
   const InventoryDetail({super.key, required this.item});
-  final DocumentSnapshot<Object?> item;
+  final DocumentSnapshot item;
 
   @override
   Widget build(BuildContext context) {
-    Color getRowColor(String color) {
+    final data = item.data() as Map<String, dynamic>? ?? {};
+
+    Color getRowColor(String? color) {
       switch (color) {
         case "Green":
           return Colors.green;
@@ -22,179 +330,169 @@ class InventoryDetail extends StatelessWidget {
       backgroundColor: const Color.fromRGBO(232, 226, 219, 1),
       body: SafeArea(
         child: SingleChildScrollView(
-          physics: BouncingScrollPhysics(),
+          physics: const BouncingScrollPhysics(),
           child: Column(
             children: [
+              /// 🔹 HEADER
               Container(
                 height: 70,
-                padding: EdgeInsets.only(left: 20, top: 10, bottom: 10),
+                padding: const EdgeInsets.only(left: 20),
                 width: MediaQuery.of(context).size.width,
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   color: Color.fromRGBO(26, 50, 99, 1),
                   borderRadius: BorderRadius.only(
                     bottomLeft: Radius.circular(10),
                     bottomRight: Radius.circular(10),
                   ),
                 ),
-                child: Center(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      IconButton(
-                        onPressed: () {
-                          Navigator.pop(context);
-                        },
-                        icon: Icon(
-                          Icons.arrow_back_rounded,
-                          color: Colors.white,
-                        ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(
+                        Icons.arrow_back_rounded,
+                        color: Colors.white,
                       ),
-
-                      Text(
-                        item.id,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 23,
-                        ),
+                    ),
+                    Text(
+                      item.id,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 23,
                       ),
-                      SizedBox(width: MediaQuery.of(context).size.width / 6),
-                    ],
-                  ),
+                    ),
+                    SizedBox(width: MediaQuery.of(context).size.width / 6),
+                  ],
                 ),
               ),
-              SizedBox(height: 20),
+
+              const SizedBox(height: 20),
+
+              /// 🔹 TOTAL QTY & VALUE
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
                   _inventoryDetailContainer(
                     "Total Qty",
-                    item['total quantity'].toString(),
-                    Color.fromRGBO(26, 50, 99, 1),
+                    data['total quantity']?.toString() ?? "0",
+                    const Color.fromRGBO(26, 50, 99, 1),
                     context,
                   ),
                   _inventoryDetailContainer(
                     "Total Value",
-                    item["total value"].toString(),
+                    data['total value']?.toString() ?? "0",
                     const Color.fromRGBO(84, 119, 146, 1),
                     context,
                   ),
                 ],
               ),
-              SizedBox(height: 10),
+
+              const SizedBox(height: 10),
+
+              /// 🔹 CURRENT STOCK
               Container(
-                padding: EdgeInsets.symmetric(horizontal: 30),
-                margin: EdgeInsets.only(top: 10, right: 20, left: 20),
+                padding: const EdgeInsets.symmetric(horizontal: 30),
+                margin: const EdgeInsets.only(
+                    top: 10, right: 20, left: 20),
                 width: double.infinity,
                 height: 70,
                 decoration: BoxDecoration(
-                  //color: const Color.fromARGB(255, 16, 70, 91),
                   color: Colors.black,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(
+                    const Text(
                       'Stock',
                       style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
-                        fontSize: 22
+                        fontSize: 22,
                       ),
                     ),
-                    Spacer(),
+                    const Spacer(),
                     Text(
-                      item["quantity"].toString(),
-                      style: TextStyle(
+                      data["quantity"]?.toString() ?? "0",
+                      style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
-                        fontSize: 22
+                        fontSize: 22,
                       ),
                     ),
                   ],
                 ),
               ),
 
-              // Container(
-              //   padding: EdgeInsets.symmetric(horizontal: 30),
-              //   margin: EdgeInsets.only(top: 10, right: 20, left: 20),
-              //   width: double.infinity,
-              //   height: 50,
-              //   decoration: BoxDecoration(
-              //     color: Colors.black,
-              //     borderRadius: BorderRadius.circular(10),
-              //   ),
-              //   child: Row(
-              //     mainAxisAlignment: MainAxisAlignment.center,
-              //     children: [
-              //       Text(
-              //         'Expected Carttons',
-              //         style: TextStyle(
-              //           color: Colors.white,
-              //           fontWeight: FontWeight.bold,
-              //         ),
-              //       ),
-              //       Spacer(),
-              //       Text(
-              //         item["expected cartton"].toString(),
-              //         style: TextStyle(
-              //           color: Colors.white,
-              //           fontWeight: FontWeight.bold,
-              //         ),
-              //       ),
-              //     ],
-              //   ),
-              // ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
+
+              /// 🔹 LEDGER HEADER
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                child: Table(
-                  border: TableBorder.all(width: 1),
-                  children: [
-                    TableRow(
-                      decoration: BoxDecoration(color: Colors.grey),
-                      children: [
-                        Center(
-                          child: Text(
-                            'Date',
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  color: Colors.grey,
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          "Date",
+                          style: TextStyle(fontWeight: FontWeight.bold),
                         ),
-                        Center(
-                          child: Text(
-                            'Quantity',
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
+                      ),
+                      Expanded(
+                        child: Text(
+                          "Quantity",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(fontWeight: FontWeight.bold),
                         ),
-                        Center(
-                          child: Text(
-                            'Description',
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
+                      ),
+                      Expanded(
+                        child: Text(
+                          "Description",
+                          textAlign: TextAlign.end,
+                          style: TextStyle(fontWeight: FontWeight.bold),
                         ),
-                      ],
-                    ),
-                  ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
+
+              /// 🔹 LEDGER LIST
               StreamBuilder<QuerySnapshot>(
                 stream: FirebaseFirestore.instance
                     .collection("Inventory")
                     .doc(item.id)
                     .collection("Ledger")
+                    .orderBy("Date", descending: true)
                     .snapshots(),
                 builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(
-                      child: CircularProgressIndicator(color: Colors.lightBlue),
+                  if (snapshot.connectionState ==
+                      ConnectionState.waiting) {
+                    return const Padding(
+                      padding: EdgeInsets.all(20),
+                      child: CircularProgressIndicator(
+                        color: Colors.lightBlue,
+                      ),
                     );
                   }
+
                   if (snapshot.hasError) {
-                    return const Center(child: Text("Error loading records"));
+                    return const Padding(
+                      padding: EdgeInsets.all(20),
+                      child: Text("Error loading records"),
+                    );
                   }
-                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                    return const Center(child: Text("No Record found"));
+
+                  if (!snapshot.hasData ||
+                      snapshot.data!.docs.isEmpty) {
+                    return const Padding(
+                      padding: EdgeInsets.all(20),
+                      child: Text("No Record found"),
+                    );
                   }
 
                   return ListView.builder(
@@ -203,51 +501,66 @@ class InventoryDetail extends StatelessWidget {
                     itemCount: snapshot.data!.docs.length,
                     itemBuilder: (context, index) {
                       final ds = snapshot.data!.docs[index];
-                      final Color rowColor = getRowColor(ds["Color"]);
+                      final ledger =
+                          ds.data() as Map<String, dynamic>? ?? {};
 
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                        child: Table(
-                          border: TableBorder.all(width: 1),
+                      final rowColor =
+                          getRowColor(ledger["Color"]);
+
+                      String formattedDate = "";
+                      if (ledger["Date"] is Timestamp) {
+                        final date =
+                            (ledger["Date"] as Timestamp)
+                                .toDate();
+                        formattedDate =
+                            "${date.day}/${date.month}/${date.year}";
+                      } else {
+                        formattedDate =
+                            ledger["Date"]?.toString() ?? "";
+                      }
+
+                      return Container(
+                        margin: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 4),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: rowColor,
+                          borderRadius:
+                              BorderRadius.circular(6),
+                        ),
+                        child: Row(
                           children: [
-                            TableRow(
-                              decoration: BoxDecoration(color: rowColor),
-                              children: [
-                                Center(
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(8.0),
-                                    child: Text(
-                                      "${ds["Date"]}",
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ),
+                            Expanded(
+                              child: Text(
+                                formattedDate,
+                                style: const TextStyle(
+                                    color: Colors.white),
+                              ),
+                            ),
+                            Expanded(
+                              child: Text(
+                                ledger["Quantity"]
+                                        ?.toString() ??
+                                    "",
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight:
+                                      FontWeight.bold,
                                 ),
-                                Center(
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(8.0),
-                                    child: Text(
-                                      "${ds["Quantity"]}",
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                Center(
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(8.0),
-                                    child: Text(
-                                      "${ds["Description"]}",
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
+                              ),
+                            ),
+                            Expanded(
+                              child: Text(
+                                ledger["Description"]
+                                        ?.toString() ??
+                                    "",
+                                textAlign: TextAlign.end,
+                                overflow:
+                                    TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                    color: Colors.white),
+                              ),
                             ),
                           ],
                         ),
@@ -265,34 +578,31 @@ class InventoryDetail extends StatelessWidget {
 
   Widget _inventoryDetailContainer(
     String text,
-    String cartons,
+    String value,
     Color color,
     BuildContext context,
   ) {
     return Container(
       decoration: BoxDecoration(
         color: color,
-
         borderRadius: BorderRadius.circular(15),
       ),
       width: MediaQuery.of(context).size.width / 2.3,
-      padding: EdgeInsets.all(20),
+      padding: const EdgeInsets.all(20),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Text(
             text,
-            style: TextStyle(
+            style: const TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 16,
               color: Colors.white,
             ),
           ),
-          SizedBox(height: 10),
+          const SizedBox(height: 10),
           Text(
-            ' $cartons',
-            style: TextStyle(
+            value,
+            style: const TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.bold,
               color: Colors.white,
