@@ -118,7 +118,9 @@ class _PackagerDetailViewState extends State<PackagerDetailView> {
                           ds.data() as Map<String, dynamic>;
                       data.remove("Actual Date");
                       data.remove("Date");
+                      data.remove("Inventory Ledger");
                       data.remove("Delivered Expected Carton");
+                      data.remove("createdAt");
 
                       return Column(
                         children: [
@@ -498,6 +500,32 @@ class _PackagerDetailViewState extends State<PackagerDetailView> {
                                       .collection("Packaging")
                                       .doc(widget.packagerName)
                                       .update(incrementFields);
+
+                                  // await FirebaseFirestore.instance.collection("Inventroy").doc()
+                                  for (var e in inventoryDocIds) {
+                                    int newValue =
+                                        int.tryParse(
+                                          controllers[e]?.text ?? "0",
+                                        ) ??
+                                        0;
+                                    int oldValue = deliverData[e] ?? 0;
+
+                                    int difference = newValue - oldValue;
+
+                                    if (difference != 0) {
+                                      await FirebaseFirestore.instance
+                                          .collection("Inventory")
+                                          .doc(e)
+                                          .update({
+                                            "quantity": FieldValue.increment(
+                                              -difference,
+                                            ),
+                                          });
+                                          await FirebaseFirestore.instance.collection("Inventory").doc(e).collection("Ledger").doc(ds["Inventory Ledger"]).update({
+                                            "Quantity": newValue,
+                                          });
+                                    }
+                                  }
 
                                   Navigator.pop(context);
                                 } catch (e) {

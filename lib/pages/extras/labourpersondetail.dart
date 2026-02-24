@@ -1,29 +1,50 @@
+// import 'package:flutter/material.dart';
+
+// class LabourPersonDetail extends StatefulWidget {
+//   const LabourPersonDetail({super.key});
+
+//   @override
+//   State<LabourPersonDetail> createState() => _LabourPersonDetailState();
+// }
+
+// class _LabourPersonDetailState extends State<LabourPersonDetail> {
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       body: SafeArea(child:SingleChildScrollView(
+//         child: Column(
+//           children: [
+
+//           ],
+//         ),
+//       )),
+//     );
+//   }
+
+// }
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:urine_bag/commons/addButton.dart';
 
-class SupplierPersonDetail extends StatefulWidget {
-  const SupplierPersonDetail({
-    super.key,
-    required this.personName,
-    required this.supplyItem,
-  });
+class Labourpersondetail extends StatefulWidget {
+  const Labourpersondetail({super.key, required this.personName, required this.category});
   final String personName;
-  final String supplyItem;
+  final String category;
 
   @override
-  State<SupplierPersonDetail> createState() => _SupplierPersonDetailState();
+  State<Labourpersondetail> createState() => _LabourpersondetailState();
 }
 
-class _SupplierPersonDetailState extends State<SupplierPersonDetail> {
-  final TextEditingController _balController = TextEditingController();
+class _LabourpersondetailState extends State<Labourpersondetail> {
+  final TextEditingController _amountController = TextEditingController();
   final TextEditingController _itemController = TextEditingController();
   final TextEditingController _dateController = TextEditingController();
   final TextEditingController _quantityController = TextEditingController();
 
   @override
   void dispose() {
-    _balController.dispose();
+    _amountController.dispose();
     _itemController.dispose();
     _dateController.dispose();
     _quantityController.dispose();
@@ -67,7 +88,7 @@ class _SupplierPersonDetailState extends State<SupplierPersonDetail> {
                         ),
                       ),
                       const Text(
-                        "Add Supply",
+                        "Add Labour",
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -123,9 +144,9 @@ class _SupplierPersonDetailState extends State<SupplierPersonDetail> {
                       ),
                       const SizedBox(height: 12),
                       TextField(
-                        controller: _balController,
+                        controller: _amountController,
                         decoration: InputDecoration(
-                          labelText: "Balance",
+                          labelText: "Amount",
                           border: OutlineInputBorder(),
                         ),
                         keyboardType: TextInputType.number,
@@ -137,7 +158,7 @@ class _SupplierPersonDetailState extends State<SupplierPersonDetail> {
                           if (_dateController.text.isEmpty ||
                               _quantityController.text.isEmpty ||
                               _itemController.text.isEmpty ||
-                              _balController.text.isEmpty) {
+                              _amountController.text.isEmpty) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                 content: Text("Please fill all fields"),
@@ -149,9 +170,9 @@ class _SupplierPersonDetailState extends State<SupplierPersonDetail> {
                           final quantity = int.tryParse(
                             _quantityController.text,
                           );
-                          final balance = int.tryParse(_balController.text);
+                          final amount = int.tryParse(_amountController.text);
 
-                          if (quantity == null || balance == null) {
+                          if (quantity == null || amount == null) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                 content: Text("Enter valid numbers"),
@@ -160,12 +181,12 @@ class _SupplierPersonDetailState extends State<SupplierPersonDetail> {
                             return;
                           }
 
-                          _addSupplyDetail(
+                          _addLabourDetail(
                             widget.personName,
                             _dateController.text,
                             quantity,
                             _itemController.text,
-                            balance,
+                            amount,
                             context,
                           );
                         },
@@ -196,7 +217,7 @@ class _SupplierPersonDetailState extends State<SupplierPersonDetail> {
                 ),
                 child: StreamBuilder<DocumentSnapshot>(
                   stream: FirebaseFirestore.instance
-                      .collection("SuplierDetail")
+                      .collection("Labour Person")
                       .doc(widget.personName)
                       .snapshots(),
                   builder: (context, snapshot) {
@@ -241,11 +262,11 @@ class _SupplierPersonDetailState extends State<SupplierPersonDetail> {
                           ),
                         ),
                         Text(
-                          'Location : ${supplier['location']}',
+                          'Address : ${supplier['Address']}',
                           style: TextStyle(color: Colors.white),
                         ),
                         Text(
-                          'Phone No : ${supplier['phone']}',
+                          'Phone No : ${supplier['Phone']}',
                           style: TextStyle(color: Colors.white),
                         ),
                       ],
@@ -255,9 +276,9 @@ class _SupplierPersonDetailState extends State<SupplierPersonDetail> {
               ),
               StreamBuilder(
                 stream: FirebaseFirestore.instance
-                    .collection("SuplierDetail")
+                    .collection("Labour Person")
                     .doc(widget.personName)
-                    .collection("Bills")
+                    .collection("Ledger")
                     .snapshots(),
                 builder:
                     (
@@ -322,14 +343,14 @@ class _SupplierPersonDetailState extends State<SupplierPersonDetail> {
                                     Spacer(),
                                     Text(
                                       ds['quantity'] != 0
-                                          ? (ds['balance'] / ds['quantity'])
+                                          ? (ds['amount'] / ds['quantity'])
                                                 .toStringAsFixed(2)
                                           : "0",
                                     ),
                                   ],
                                 ),
                                 Text(
-                                  'Balance: ${ds['balance']}',
+                                  'Amount: ${ds['amount']}',
                                   style: TextStyle(
                                     color: Colors.red,
                                     fontWeight: FontWeight.bold,
@@ -350,46 +371,32 @@ class _SupplierPersonDetailState extends State<SupplierPersonDetail> {
     );
   }
 
-  void _addSupplyDetail(
+  void _addLabourDetail(
     String person,
     String date,
     int quantity,
     String item,
-    int bal,
+    int amount,
     BuildContext context,
   ) async {
     await FirebaseFirestore.instance
-        .collection("SuplierDetail")
+        .collection("Labour Person")
         .doc(widget.personName)
-        .collection("Bills")
+        .collection("Ledger")
         .doc()
         .set({
           "date": date,
           "quantity": quantity,
           "item": item,
-          "balance": bal,
+          "amount": amount,
           "createdAt": FieldValue.serverTimestamp(),
         });
-
-    await FirebaseFirestore.instance
-        .collection("Inventory")
-        .doc(widget.supplyItem)
-        .collection("Ledger")
-        .doc()
-        .set({
-          "Date": date,
-          "Quantity": "+$quantity",
-          "Color": "Green",
-          "Description": person,
-          "createdAt":FieldValue.serverTimestamp(),
-        });
-    await FirebaseFirestore.instance
-        .collection("Inventory")
-        .doc(widget.supplyItem)
+    FirebaseFirestore.instance
+        .collection("Extras")
+        .doc(widget.category)
         .update({
-          "quantity": FieldValue.increment(quantity),
-          "total quantity": FieldValue.increment(quantity),
-          "total value": FieldValue.increment(bal),
+          "Total Amount": FieldValue.increment(amount),
+          "Total Pieces": FieldValue.increment(quantity),
         })
         .then((value) => Navigator.pop(context));
   }

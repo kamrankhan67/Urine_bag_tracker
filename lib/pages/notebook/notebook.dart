@@ -219,7 +219,6 @@
 // // //                         ],
 // // //                       ),]
 
-                      
 // // //                       StreamBuilder(stream: FirebaseFirestore.instance.collection("Note").snapshots(), builder: (){
 // // //                         if (snapshot.connectionState == ConnectionState.waiting) {
 // // //             return Center(child: CircularProgressIndicator(color: Colors.lightBlue));
@@ -875,18 +874,21 @@ class _NotebookState extends State<Notebook> {
     }
 
     try {
-      await FirebaseFirestore.instance.collection("Note").add({
-        "Date": _dateController.text,
-        "Name": _nameController.text,
-        "Item": _itemController.text,
-        "Amount": int.tryParse(_amountController.text) ?? 0,
-        "Description": _descriptionController.text,
-        "Timestamp": FieldValue.serverTimestamp(),
-      });
+      await FirebaseFirestore.instance
+          .collection("Note")
+          .add({
+            "Date": _dateController.text,
+            "Name": _nameController.text,
+            "Item": _itemController.text,
+            "Amount": int.tryParse(_amountController.text) ?? 0,
+            "Description": _descriptionController.text,
+            "Timestamp": FieldValue.serverTimestamp(),
+          })
+          .then((e) => Navigator.pop(context));
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Note added successfully")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Note added successfully")));
 
       // Clear the controllers
       _dateController.clear();
@@ -895,9 +897,9 @@ class _NotebookState extends State<Notebook> {
       _amountController.clear();
       _descriptionController.clear();
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: $e")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Error: $e")));
     }
   }
 
@@ -920,7 +922,10 @@ class _NotebookState extends State<Notebook> {
       appBar: AppBar(
         foregroundColor: Colors.white,
         backgroundColor: const Color.fromRGBO(26, 50, 99, 1),
-        title: const Text('Daily Notebook', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text(
+          'Daily Notebook',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         centerTitle: true,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
@@ -935,7 +940,10 @@ class _NotebookState extends State<Notebook> {
       ),
       body: SafeArea(
         child: StreamBuilder<QuerySnapshot>(
-          stream: FirebaseFirestore.instance.collection("Note").orderBy("Timestamp", descending: true).snapshots(),
+          stream: FirebaseFirestore.instance
+              .collection("Note")
+              .orderBy("Timestamp", descending: true)
+              .snapshots(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
@@ -959,27 +967,69 @@ class _NotebookState extends State<Notebook> {
                   defaultVerticalAlignment: TableCellVerticalAlignment.middle,
                   children: [
                     TableRow(
-                      decoration: BoxDecoration(color: const Color.fromARGB(255, 0, 0, 0)),
+                      decoration: BoxDecoration(
+                        color: const Color.fromARGB(255, 0, 0, 0),
+                      ),
                       children: const [
                         Padding(
                           padding: EdgeInsets.all(3.0),
-                          child: Center(child: Text("Date", style: TextStyle(color: Colors.white,fontWeight: FontWeight.bold))),
+                          child: Center(
+                            child: Text(
+                              "Date",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
                         ),
                         Padding(
                           padding: EdgeInsets.all(3.0),
-                          child: Center(child: Text("Name", style: TextStyle(color: Colors.white,fontWeight: FontWeight.bold))),
+                          child: Center(
+                            child: Text(
+                              "Name",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
                         ),
                         Padding(
                           padding: EdgeInsets.all(3.0),
-                          child: Center(child: Text("Item", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+                          child: Center(
+                            child: Text(
+                              "Item",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
                         ),
                         Padding(
                           padding: EdgeInsets.all(3.0),
-                          child: Center(child: Text("Amount", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+                          child: Center(
+                            child: Text(
+                              "Amount",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
                         ),
                         Padding(
                           padding: EdgeInsets.all(3.0),
-                          child: Center(child: Text("Description", style: TextStyle(color: Colors.white,  fontWeight: FontWeight.bold))),
+                          child: Center(
+                            child: Text(
+                              "Description",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -1000,11 +1050,15 @@ class _NotebookState extends State<Notebook> {
                           ),
                           Padding(
                             padding: const EdgeInsets.all(8.0),
-                            child: Center(child: Text(doc['Amount'].toString())),
+                            child: Center(
+                              child: Text(doc['Amount'].toString()),
+                            ),
                           ),
                           Padding(
                             padding: const EdgeInsets.all(8.0),
-                            child: Center(child: Text(doc['Description'] ?? '')),
+                            child: Center(
+                              child: Text(doc['Description'] ?? ''),
+                            ),
                           ),
                         ],
                       );
@@ -1023,11 +1077,15 @@ class _NotebookState extends State<Notebook> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (context) {
         return SingleChildScrollView(
           child: Padding(
-            padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
+            ),
             child: Container(
               padding: const EdgeInsets.all(16),
               margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
@@ -1038,7 +1096,10 @@ class _NotebookState extends State<Notebook> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text("Add Note", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  const Text(
+                    "Add Note",
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
                   const SizedBox(height: 16),
                   TextField(
                     controller: _dateController,
@@ -1093,6 +1154,3 @@ class _NotebookState extends State<Notebook> {
     );
   }
 }
-
-
-

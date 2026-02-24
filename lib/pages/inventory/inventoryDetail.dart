@@ -521,7 +521,7 @@ class InventoryDetail extends StatelessWidget {
 
                       return Container(
                         margin: const EdgeInsets.symmetric(
-                            horizontal: 20, vertical: 4),
+                            horizontal: 20, vertical: 1),
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
                           color: rowColor,

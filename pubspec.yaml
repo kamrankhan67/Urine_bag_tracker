@@ -37,8 +37,9 @@ dependencies:
   excel: ^2.0.4
   firebase_core:
   cloud_firestore: ^6.1.2
-  sqflite: ^2.0.0+3
+  google_fonts: ^6.1.0
   path_provider: ^2.0.1
+
   
    
 

@@ -336,7 +336,8 @@ class PackagerDetail extends StatelessWidget {
       ..remove("Expected Carton")
       ..remove("Received Carton")
       ..remove("Boxes")
-      ..remove("Pieces");
+      ..remove("Pieces")
+      ..remove("createdAt");
 
     final receivedData = {
       "Carton": data["Received Carton"] ?? 0,

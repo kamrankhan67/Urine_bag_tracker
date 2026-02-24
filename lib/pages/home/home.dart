@@ -1,11 +1,14 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:urine_bag/commons/addButton.dart';
 import 'package:urine_bag/commons/home_button.dart';
 import 'package:urine_bag/pages/auth/authentication.dart';
+import 'package:urine_bag/pages/extras/extras.dart';
 import 'package:urine_bag/pages/inventory/inventory.dart';
 import 'package:urine_bag/pages/packager/packager.dart';
 import 'package:urine_bag/pages/supplier/supplier.dart';
+import 'dart:async';
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -15,7 +18,7 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
-  static int readyBags = 0;
+  StreamSubscription<DocumentSnapshot>? _readyBagsSubscription;
   Map<String, TextEditingController> controllers = {};
   List<String> inventoryDocIds = [];
   final TextEditingController _dateController = TextEditingController();
@@ -24,7 +27,8 @@ class _HomeState extends State<Home> {
       TextEditingController();
   final TextEditingController _recievedDateController = TextEditingController();
   final TextEditingController _statusController = TextEditingController();
-
+  int readyBags = 0;
+  int readyPieces = 0;
   String? selectedItem;
   String? receivedSelectedItem;
   List<String> packagerDocIds = [];
@@ -36,14 +40,31 @@ class _HomeState extends State<Home> {
     super.initState();
     _fetchInventoryDocs();
     _fetchPackagerDocs();
+    _fetchReadyBags();
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-
     _fetchInventoryDocs();
+    _fetchPackagerDocs();
   }
+Future<void> _fetchReadyBags() async {
+  _readyBagsSubscription = FirebaseFirestore.instance
+      .collection("Extras")
+      .doc("Ready Bags")
+      .snapshots()
+      .listen((snapshot) {
+    if (!mounted) return;
+
+    if (snapshot.exists) {
+      setState(() {
+        readyBags = snapshot.get("Ready Cartons") ?? 0;
+        readyPieces = snapshot.get("Ready Pieces") ?? 0;
+      });
+    }
+  });
+}
 
   Future<void> _fetchInventoryDocs() async {
     try {
@@ -94,6 +115,7 @@ class _HomeState extends State<Home> {
     }
 
     try {
+      String randomId = DateTime.now().millisecondsSinceEpoch.toString();
       Map<String, dynamic> dataToSend = {};
 
       controllers.forEach((docId, controller) {
@@ -111,6 +133,7 @@ class _HomeState extends State<Home> {
         'Actual Date': DateTime.now(),
         'Date': _dateController.text.trim(),
         'Delivered Expected Carton': 0,
+        "Inventory Ledger":randomId, 
         ...dataToSend,
       });
 
@@ -140,7 +163,7 @@ class _HomeState extends State<Home> {
               "quantity": FieldValue.increment(-entry.value),
             });
 
-            DocumentReference ledgerRef = invRef.collection("Ledger").doc();
+            DocumentReference ledgerRef = invRef.collection("Ledger").doc(randomId);
 
             transaction.set(ledgerRef, {
               "Date": _dateController.text.trim(),
@@ -177,21 +200,22 @@ class _HomeState extends State<Home> {
   }
 
   @override
-  void dispose() {
-    // Dispose inventory controllers
-    controllers.forEach((key, controller) => controller.dispose());
+void dispose() {
+  _readyBagsSubscription?.cancel(); // VERY IMPORTANT
 
-    // Dispose bottom sheet controllers
-    _dateController.dispose();
-    _recievedCartonController.dispose();
-    _recievedDateController.dispose();
-    _statusController.dispose();
+  controllers.forEach((key, controller) => controller.dispose());
 
-    super.dispose();
-  }
+  _dateController.dispose();
+  _recievedCartonController.dispose();
+  _recievedDateController.dispose();
+  _statusController.dispose();
+
+  super.dispose();
+}
 
   @override
   Widget build(BuildContext context) {
+    
     return Scaffold(
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.black,
@@ -220,11 +244,12 @@ class _HomeState extends State<Home> {
                   ),
                 ),
                 child: Text(
-                  "Hi ! Munir and Sons",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
+                  "Hi! Munir and Sons",
+                   style: GoogleFonts.playfairDisplay(
                     fontSize: 23,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    letterSpacing: 1.5,
                   ),
                 ),
               ),
@@ -244,18 +269,47 @@ class _HomeState extends State<Home> {
 
                 children: [
                   _homeContainer(
-                    "Extra",
-                    '34',
-                    '100',
-                    Color.fromRGBO(12, 44, 85, 1),
-                    context,
-                  ),
-                  _homeContainer(
                     "Ready Bags",
                     '$readyBags',
-                    '${readyBags * 48}',
+                    '$readyPieces',
                     Color.fromRGBO(41, 99, 116, 1),
                     context,
+                  ),
+                  GestureDetector(
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => Extras()),
+                    ),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Color.fromRGBO(26, 50, 99, 1),
+                        border: Border.all(
+                          width: 1,
+                          color: Color.fromRGBO(26, 50, 99, 1),
+                        ),
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      width: MediaQuery.of(context).size.width / 2.1,
+                      height: 130,
+                      padding: EdgeInsets.all(20),
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              "Extras",
+                              style: TextStyle(
+                                fontSize: 18,
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            SizedBox(height: 10,),
+                            Icon(Icons.auto_awesome_motion_rounded,size: 28,color: Colors.white,)
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -316,22 +370,47 @@ class _HomeState extends State<Home> {
                                     ),
 
                                     const SizedBox(height: 16),
+                                    // packagerDocIds.isEmpty
+                                    //     ? Center(
+                                    //         child: Text("No Packager found"),
+                                    //       )
+                                    //     : DropdownButton<String>(
+                                    //         value:
+                                    //             packagerDocIds.contains(
+                                    //               selectedItem,
+                                    //             )
+                                    //             ? selectedItem
+                                    //             : null,
+                                    //         hint: Text("Select Packager"),
+                                    //         isExpanded: true,
+                                    //         onChanged: (String? value) {
+                                    //           setState(() {
+                                    //             selectedItem = value;
+                                    //           });
+                                    //         },
+                                    //         items: packagerDocIds
+                                    //             .map(
+                                    //               (element) =>
+                                    //                   DropdownMenuItem<String>(
+                                    //                     value: element,
+                                    //                     child: Text(element),
+                                    //                   ),
+                                    //             )
+                                    //             .toList(),
+                                    //       ),
                                     packagerDocIds.isEmpty
                                         ? Center(
                                             child: Text("No Packager found"),
                                           )
                                         : DropdownButton<String>(
                                             value:
-                                                packagerDocIds.contains(
-                                                  selectedItem,
-                                                )
-                                                ? selectedItem
-                                                : null,
+                                                selectedItem, // Pass selectedItem directly
                                             hint: Text("Select Packager"),
                                             isExpanded: true,
                                             onChanged: (String? value) {
                                               setState(() {
-                                                selectedItem = value;
+                                                selectedItem =
+                                                    value; // update the selected value
                                               });
                                             },
                                             items: packagerDocIds
@@ -344,6 +423,7 @@ class _HomeState extends State<Home> {
                                                 )
                                                 .toList(),
                                           ),
+
                                     SizedBox(height: 15),
                                     TextField(
                                       controller: _dateController,
@@ -737,7 +817,7 @@ class _HomeState extends State<Home> {
         "Received_pieces": carton * 144,
         "Received_box": carton * 48,
         "Status": status.trim(),
-        "Timestamp": FieldValue.serverTimestamp(),
+        "createdAt": FieldValue.serverTimestamp(),
       });
 
       await packagingRef.update({
@@ -748,9 +828,23 @@ class _HomeState extends State<Home> {
 
       if (!mounted) return;
 
-      setState(() {
-        readyBags += carton;
-      });
+      final docRef = FirebaseFirestore.instance
+    .collection("Extras")
+    .doc("Ready Bags");
+
+final doc = await docRef.get();
+
+if (doc.exists) {
+  await docRef.update({
+    "Ready Cartons": FieldValue.increment(carton),
+    "Ready Pieces": FieldValue.increment(carton * 144),
+  });
+} else {
+  await docRef.set({
+    "Ready Cartons": carton,
+    "Ready Pieces": carton * 144,
+  });
+}
 
       Navigator.pop(context);
 
