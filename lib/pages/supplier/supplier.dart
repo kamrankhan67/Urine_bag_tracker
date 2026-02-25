@@ -483,6 +483,7 @@ class _SupplierState extends State<Supplier> {
     String supplierName = text.trim();
 
     if (supplierName.isEmpty) {
+      Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Supplier name cannot be empty.")),
       );
@@ -501,6 +502,7 @@ class _SupplierState extends State<Supplier> {
       DocumentSnapshot existingSupplier = await supplierRef.get();
 
       if (existingSupplier.exists) {
+        Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Supplier already exists.")),
         );

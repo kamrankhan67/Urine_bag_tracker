@@ -212,6 +212,7 @@ class _LabourState extends State<Labour> {
     String labourCategory = text.trim();
 
     if (labourCategory.isEmpty) {
+      Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Labour category name cannot be empty.")),
       );
@@ -228,6 +229,7 @@ class _LabourState extends State<Labour> {
       DocumentSnapshot existingLabourCategory = await supplierRef.get();
 
       if (existingLabourCategory.exists) {
+        Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Labour category already exists.")),
         );

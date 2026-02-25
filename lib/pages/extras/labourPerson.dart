@@ -261,6 +261,7 @@ class _LabourPersonState extends State<LabourPerson> {
     String phone = ph.trim();
 
     if (supplierName.isEmpty) {
+      Navigator.pop(context); // Close the bottom sheet before showing error
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Labour Person name cannot be empty.")),
       );
@@ -268,6 +269,7 @@ class _LabourPersonState extends State<LabourPerson> {
     }
 
     if (location.isEmpty) {
+      Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Location cannot be empty.")),
       );
@@ -275,6 +277,7 @@ class _LabourPersonState extends State<LabourPerson> {
     }
 
     if (phone.isEmpty) {
+      Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Phone number cannot be empty.")),
       );
@@ -283,6 +286,7 @@ class _LabourPersonState extends State<LabourPerson> {
 
     // Basic phone validation (digits only, 7–15 length)
     if (!RegExp(r'^[0-9]{7,15}$').hasMatch(phone)) {
+      Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Enter a valid phone number.")),
       );
@@ -297,8 +301,9 @@ class _LabourPersonState extends State<LabourPerson> {
       DocumentSnapshot existing = await ref.get();
 
       if (existing.exists) {
+        Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Supplier already exists.")),
+          const SnackBar(content: Text("Labour Person already exists.")),
         );
         return;
       }

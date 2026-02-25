@@ -228,6 +228,7 @@ class _SupplierDetailState extends State<SupplierDetail> {
   String phone = ph.trim();
 
   if (supplierName.isEmpty) {
+    Navigator.pop(context);
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("Supplier name cannot be empty.")),
     );
@@ -235,6 +236,7 @@ class _SupplierDetailState extends State<SupplierDetail> {
   }
 
   if (location.isEmpty) {
+    Navigator.pop(context);
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("Location cannot be empty.")),
     );
@@ -242,6 +244,7 @@ class _SupplierDetailState extends State<SupplierDetail> {
   }
 
   if (phone.isEmpty) {
+    Navigator.pop(context);
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("Phone number cannot be empty.")),
     );
@@ -250,6 +253,7 @@ class _SupplierDetailState extends State<SupplierDetail> {
 
   // Basic phone validation (digits only, 7–15 length)
   if (!RegExp(r'^[0-9]{7,15}$').hasMatch(phone)) {
+    Navigator.pop(context);
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("Enter a valid phone number.")),
     );
@@ -264,6 +268,7 @@ class _SupplierDetailState extends State<SupplierDetail> {
     DocumentSnapshot existing = await ref.get();
 
     if (existing.exists) {
+      Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Supplier already exists.")),
       );

@@ -49,22 +49,23 @@ class _HomeState extends State<Home> {
     _fetchInventoryDocs();
     _fetchPackagerDocs();
   }
-Future<void> _fetchReadyBags() async {
-  _readyBagsSubscription = FirebaseFirestore.instance
-      .collection("Extras")
-      .doc("Ready Bags")
-      .snapshots()
-      .listen((snapshot) {
-    if (!mounted) return;
 
-    if (snapshot.exists) {
-      setState(() {
-        readyBags = snapshot.get("Ready Cartons") ?? 0;
-        readyPieces = snapshot.get("Ready Pieces") ?? 0;
-      });
-    }
-  });
-}
+  Future<void> _fetchReadyBags() async {
+    _readyBagsSubscription = FirebaseFirestore.instance
+        .collection("Extras")
+        .doc("Ready Bags")
+        .snapshots()
+        .listen((snapshot) {
+          if (!mounted) return;
+
+          if (snapshot.exists) {
+            setState(() {
+              readyBags = snapshot.get("Ready Cartons") ?? 0;
+              readyPieces = snapshot.get("Ready Pieces") ?? 0;
+            });
+          }
+        });
+  }
 
   Future<void> _fetchInventoryDocs() async {
     try {
@@ -108,6 +109,7 @@ Future<void> _fetchReadyBags() async {
 
   Future<void> _sendData() async {
     if (selectedItem == null) {
+      Navigator.pop(context);
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text("Please select a packager")));
@@ -133,7 +135,7 @@ Future<void> _fetchReadyBags() async {
         'Actual Date': DateTime.now(),
         'Date': _dateController.text.trim(),
         'Delivered Expected Carton': 0,
-        "Inventory Ledger":randomId, 
+        "Inventory Ledger": randomId,
         ...dataToSend,
       });
 
@@ -148,12 +150,16 @@ Future<void> _fetchReadyBags() async {
             DocumentSnapshot snapshot = await transaction.get(invRef);
 
             if (!snapshot.exists) {
+              // Close the bottom sheet before showing error
               throw Exception("Inventory item ${entry.key} does not exist.");
             }
 
             int currentQty = snapshot.get("quantity") ?? 0;
 
             if (currentQty < entry.value) {
+              Navigator.pop(
+                context,
+              ); // Close the bottom sheet before showing error
               throw Exception(
                 "Not enough stock for ${entry.key}. Available: $currentQty",
               );
@@ -163,7 +169,9 @@ Future<void> _fetchReadyBags() async {
               "quantity": FieldValue.increment(-entry.value),
             });
 
-            DocumentReference ledgerRef = invRef.collection("Ledger").doc(randomId);
+            DocumentReference ledgerRef = invRef
+                .collection("Ledger")
+                .doc(randomId);
 
             transaction.set(ledgerRef, {
               "Date": _dateController.text.trim(),
@@ -200,22 +208,21 @@ Future<void> _fetchReadyBags() async {
   }
 
   @override
-void dispose() {
-  _readyBagsSubscription?.cancel(); // VERY IMPORTANT
+  void dispose() {
+    _readyBagsSubscription?.cancel(); // VERY IMPORTANT
 
-  controllers.forEach((key, controller) => controller.dispose());
+    controllers.forEach((key, controller) => controller.dispose());
 
-  _dateController.dispose();
-  _recievedCartonController.dispose();
-  _recievedDateController.dispose();
-  _statusController.dispose();
+    _dateController.dispose();
+    _recievedCartonController.dispose();
+    _recievedDateController.dispose();
+    _statusController.dispose();
 
-  super.dispose();
-}
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    
     return Scaffold(
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.black,
@@ -245,7 +252,7 @@ void dispose() {
                 ),
                 child: Text(
                   "Hi! Munir and Sons",
-                   style: GoogleFonts.playfairDisplay(
+                  style: GoogleFonts.playfairDisplay(
                     fontSize: 23,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
@@ -304,8 +311,12 @@ void dispose() {
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            SizedBox(height: 10,),
-                            Icon(Icons.auto_awesome_motion_rounded,size: 28,color: Colors.white,)
+                            SizedBox(height: 10),
+                            Icon(
+                              Icons.auto_awesome_motion_rounded,
+                              size: 28,
+                              color: Colors.white,
+                            ),
                           ],
                         ),
                       ),
@@ -370,34 +381,7 @@ void dispose() {
                                     ),
 
                                     const SizedBox(height: 16),
-                                    // packagerDocIds.isEmpty
-                                    //     ? Center(
-                                    //         child: Text("No Packager found"),
-                                    //       )
-                                    //     : DropdownButton<String>(
-                                    //         value:
-                                    //             packagerDocIds.contains(
-                                    //               selectedItem,
-                                    //             )
-                                    //             ? selectedItem
-                                    //             : null,
-                                    //         hint: Text("Select Packager"),
-                                    //         isExpanded: true,
-                                    //         onChanged: (String? value) {
-                                    //           setState(() {
-                                    //             selectedItem = value;
-                                    //           });
-                                    //         },
-                                    //         items: packagerDocIds
-                                    //             .map(
-                                    //               (element) =>
-                                    //                   DropdownMenuItem<String>(
-                                    //                     value: element,
-                                    //                     child: Text(element),
-                                    //                   ),
-                                    //             )
-                                    //             .toList(),
-                                    //       ),
+
                                     packagerDocIds.isEmpty
                                         ? Center(
                                             child: Text("No Packager found"),
@@ -793,6 +777,7 @@ void dispose() {
     BuildContext context,
   ) async {
     if (name.isEmpty) {
+      Navigator.pop(context);
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text("Invalid packager name")));
@@ -800,6 +785,7 @@ void dispose() {
     }
 
     if (carton <= 0) {
+      Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Carton must be greater than 0")),
       );
@@ -829,22 +815,22 @@ void dispose() {
       if (!mounted) return;
 
       final docRef = FirebaseFirestore.instance
-    .collection("Extras")
-    .doc("Ready Bags");
+          .collection("Extras")
+          .doc("Ready Bags");
 
-final doc = await docRef.get();
+      final doc = await docRef.get();
 
-if (doc.exists) {
-  await docRef.update({
-    "Ready Cartons": FieldValue.increment(carton),
-    "Ready Pieces": FieldValue.increment(carton * 144),
-  });
-} else {
-  await docRef.set({
-    "Ready Cartons": carton,
-    "Ready Pieces": carton * 144,
-  });
-}
+      if (doc.exists) {
+        await docRef.update({
+          "Ready Cartons": FieldValue.increment(carton),
+          "Ready Pieces": FieldValue.increment(carton * 144),
+        });
+      } else {
+        await docRef.set({
+          "Ready Cartons": carton,
+          "Ready Pieces": carton * 144,
+        });
+      }
 
       Navigator.pop(context);
 
