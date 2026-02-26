@@ -41,6 +41,7 @@ class _HomeState extends State<Home> {
     _fetchInventoryDocs();
     _fetchPackagerDocs();
     _fetchReadyBags();
+    
   }
 
   @override
@@ -107,6 +108,105 @@ class _HomeState extends State<Home> {
     }
   }
 
+  // Future<void> _sendData() async {
+  //   if (selectedItem == null) {
+  //     Navigator.pop(context);
+  //     ScaffoldMessenger.of(
+  //       context,
+  //     ).showSnackBar(const SnackBar(content: Text("Please select a packager")));
+  //     return;
+  //   }
+
+  //   try {
+  //     String randomId = DateTime.now().millisecondsSinceEpoch.toString();
+  //     Map<String, dynamic> dataToSend = {};
+
+  //     controllers.forEach((docId, controller) {
+  //       int value = int.tryParse(controller.text.trim()) ?? 0;
+  //       if (value < 0) value = 0; // prevent negative send
+  //       dataToSend[docId] = value;
+  //     });
+
+  //     DocumentReference packagingRef = FirebaseFirestore.instance
+  //         .collection('Packaging')
+  //         .doc(selectedItem);
+
+  //     // Save deliver record
+  //     await packagingRef.collection("Deliver").doc().set({
+  //       'Actual Date': DateTime.now(),
+  //       'Date': _dateController.text.trim(),
+  //       'Delivered Expected Carton': 0,
+  //       "Inventory Ledger": randomId,
+  //       ...dataToSend,
+  //     });
+
+  //     // Update inventory using transactions
+  //     for (var entry in dataToSend.entries) {
+  //       if (entry.value > 0) {
+  //         await FirebaseFirestore.instance.runTransaction((transaction) async {
+  //           DocumentReference invRef = FirebaseFirestore.instance
+  //               .collection("Inventory")
+  //               .doc(entry.key);
+
+  //           DocumentSnapshot snapshot = await transaction.get(invRef);
+
+  //           if (!snapshot.exists) {
+  //             // Close the bottom sheet before showing error
+  //             throw Exception("Inventory item ${entry.key} does not exist.");
+  //           }
+
+  //           int currentQty = snapshot.get("quantity") ?? 0;
+
+  //           if (currentQty < entry.value) {
+  //             Navigator.pop(
+  //               context,
+  //             ); // Close the bottom sheet before showing error
+  //             throw Exception(
+  //               "Not enough stock for ${entry.key}. Available: $currentQty",
+  //             );
+  //           }
+
+  //           transaction.update(invRef, {
+  //             "quantity": FieldValue.increment(-entry.value),
+  //           });
+
+  //           DocumentReference ledgerRef = invRef
+  //               .collection("Ledger")
+  //               .doc(randomId);
+
+  //           transaction.set(ledgerRef, {
+  //             "Date": _dateController.text.trim(),
+  //             "Quantity": "-${entry.value}",
+  //             "Color": "Red",
+  //             "Description": selectedItem!,
+  //             "Timestamp": FieldValue.serverTimestamp(),
+  //           });
+  //         });
+  //       }
+  //     }
+
+  //     // Update packaging totals
+  //     await packagingRef.update({
+  //       ...dataToSend.map((key, value) {
+  //         return MapEntry(key, FieldValue.increment(value));
+  //       }),
+  //     });
+
+  //     if (!mounted) return;
+
+  //     ScaffoldMessenger.of(
+  //       context,
+  //     ).showSnackBar(const SnackBar(content: Text("Data sent successfully!")));
+
+  //     Navigator.pop(context);
+  //   } catch (e) {
+  //     if (!mounted) return;
+
+  //     ScaffoldMessenger.of(
+  //       context,
+  //     ).showSnackBar(SnackBar(content: Text("Error: ${e.toString()}")));
+  //   }
+  // }
   Future<void> _sendData() async {
     if (selectedItem == null) {
       Navigator.pop(context);
@@ -117,93 +217,106 @@ class _HomeState extends State<Home> {
     }
 
     try {
-      String randomId = DateTime.now().millisecondsSinceEpoch.toString();
-      Map<String, dynamic> dataToSend = {};
+      final String randomId = DateTime.now().millisecondsSinceEpoch.toString();
 
+      // Build dataToSend and remove zero values (optional but cleaner)
+      final Map<String, int> dataToSend = {};
       controllers.forEach((docId, controller) {
         int value = int.tryParse(controller.text.trim()) ?? 0;
-        if (value < 0) value = 0; // prevent negative send
-        dataToSend[docId] = value;
+        if (value < 0) value = 0;
+        if (value > 0) dataToSend[docId] = value;
       });
 
-      DocumentReference packagingRef = FirebaseFirestore.instance
-          .collection('Packaging')
-          .doc(selectedItem);
-
-      // Save deliver record
-      await packagingRef.collection("Deliver").doc().set({
-        'Actual Date': DateTime.now(),
-        'Date': _dateController.text.trim(),
-        'Delivered Expected Carton': 0,
-        "Inventory Ledger": randomId,
-        ...dataToSend,
-      });
-
-      // Update inventory using transactions
-      for (var entry in dataToSend.entries) {
-        if (entry.value > 0) {
-          await FirebaseFirestore.instance.runTransaction((transaction) async {
-            DocumentReference invRef = FirebaseFirestore.instance
-                .collection("Inventory")
-                .doc(entry.key);
-
-            DocumentSnapshot snapshot = await transaction.get(invRef);
-
-            if (!snapshot.exists) {
-              // Close the bottom sheet before showing error
-              throw Exception("Inventory item ${entry.key} does not exist.");
-            }
-
-            int currentQty = snapshot.get("quantity") ?? 0;
-
-            if (currentQty < entry.value) {
-              Navigator.pop(
-                context,
-              ); // Close the bottom sheet before showing error
-              throw Exception(
-                "Not enough stock for ${entry.key}. Available: $currentQty",
-              );
-            }
-
-            transaction.update(invRef, {
-              "quantity": FieldValue.increment(-entry.value),
-            });
-
-            DocumentReference ledgerRef = invRef
-                .collection("Ledger")
-                .doc(randomId);
-
-            transaction.set(ledgerRef, {
-              "Date": _dateController.text.trim(),
-              "Quantity": "-${entry.value}",
-              "Color": "Red",
-              "Description": selectedItem!,
-              "Timestamp": FieldValue.serverTimestamp(),
-            });
-          });
-        }
+      if (dataToSend.isEmpty) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Enter at least one quantity.")),
+        );
+        return;
       }
 
-      // Update packaging totals
-      await packagingRef.update({
-        ...dataToSend.map((key, value) {
-          return MapEntry(key, FieldValue.increment(value));
-        }),
+      final packagingRef = FirebaseFirestore.instance
+          .collection("Packaging")
+          .doc(selectedItem);
+
+      // ✅ Create Deliver doc ref now (but we will write it ONLY inside transaction)
+      final deliverDocRef = packagingRef.collection("Deliver").doc();
+
+      await FirebaseFirestore.instance.runTransaction((transaction) async {
+        // 1) CHECK STOCK FOR ALL ITEMS FIRST
+        for (final entry in dataToSend.entries) {
+          final invRef = FirebaseFirestore.instance
+              .collection("Inventory")
+              .doc(entry.key);
+
+          final invSnap = await transaction.get(invRef);
+
+          if (!invSnap.exists) {
+            Navigator.pop(context);
+            throw Exception("Inventory item ${entry.key} does not exist.");
+          }
+
+          final dynamic q = invSnap.data()?["quantity"];
+          final int currentQty = (q is int)
+              ? q
+              : int.tryParse(q?.toString() ?? "0") ?? 0;
+
+          if (currentQty < entry.value) {
+            Navigator.pop(context);
+            throw Exception(
+              "Not enough stock for ${entry.key}. Available: $currentQty, Requested: ${entry.value}",
+            );
+          }
+        }
+
+        // 2) APPLY UPDATES + LEDGER (only after all checks pass)
+        for (final entry in dataToSend.entries) {
+          final invRef = FirebaseFirestore.instance
+              .collection("Inventory")
+              .doc(entry.key);
+
+          transaction.update(invRef, {
+            "quantity": FieldValue.increment(-entry.value),
+          });
+
+          final ledgerRef = invRef.collection("Ledger").doc(randomId);
+          transaction.set(ledgerRef, {
+            "Date": _dateController.text.trim(),
+            "Quantity": -entry.value, // ✅ store as int, not string
+            "Color": "Red",
+            "Description": selectedItem!,
+            "Timestamp": FieldValue.serverTimestamp(),
+          });
+        }
+
+        // 3) CREATE DELIVER DOC (only if stock ok)
+        transaction.set(deliverDocRef, {
+          "Actual Date": DateTime.now(),
+          "Date": _dateController.text.trim(),
+          "Delivered Expected Carton": 0,
+          "Inventory Ledger": randomId,
+          ...dataToSend, // writes item quantities
+        });
+
+        // 4) UPDATE PACKAGING TOTALS
+        final Map<String, dynamic> incMap = {};
+        dataToSend.forEach((key, value) {
+          incMap[key] = FieldValue.increment(value);
+        });
+        transaction.update(packagingRef, incMap);
       });
 
       if (!mounted) return;
-
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text("Data sent successfully!")));
-
       Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;
-
+      // ✅ Don't pop here unless you want to close sheet on error
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text("Error: ${e.toString()}")));
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
     }
   }
 
@@ -352,119 +465,125 @@ class _HomeState extends State<Home> {
                                 padding: const EdgeInsets.all(16),
                                 margin: EdgeInsets.symmetric(horizontal: 20),
                                 height:
-                                    MediaQuery.of(context).size.height * 1.40,
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    Center(
-                                      child: Container(
-                                        width: 40,
-                                        height: 5,
-                                        margin: const EdgeInsets.only(
-                                          bottom: 16,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: Colors.grey[400],
-                                          borderRadius: BorderRadius.circular(
-                                            10,
+                                    MediaQuery.of(context).size.height * 0.6,
+                                child: SingleChildScrollView(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.center,
+                                    children: [
+                                      Center(
+                                        child: Container(
+                                          width: 40,
+                                          height: 5,
+                                          margin: const EdgeInsets.only(
+                                            bottom: 16,
                                           ),
-                                        ),
-                                      ),
-                                    ),
-
-                                    const Text(
-                                      "Deliver Item",
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-
-                                    const SizedBox(height: 16),
-
-                                    packagerDocIds.isEmpty
-                                        ? Center(
-                                            child: Text("No Packager found"),
-                                          )
-                                        : DropdownButton<String>(
-                                            value:
-                                                selectedItem, // Pass selectedItem directly
-                                            hint: Text("Select Packager"),
-                                            isExpanded: true,
-                                            onChanged: (String? value) {
-                                              setState(() {
-                                                selectedItem =
-                                                    value; // update the selected value
-                                              });
-                                            },
-                                            items: packagerDocIds
-                                                .map(
-                                                  (element) =>
-                                                      DropdownMenuItem<String>(
-                                                        value: element,
-                                                        child: Text(element),
-                                                      ),
-                                                )
-                                                .toList(),
-                                          ),
-
-                                    SizedBox(height: 15),
-                                    TextField(
-                                      controller: _dateController,
-                                      readOnly: true,
-                                      decoration: InputDecoration(
-                                        labelText: "Date",
-                                        border: OutlineInputBorder(),
-                                      ),
-                                      onTap: () async {
-                                        DateTime? picked = await showDatePicker(
-                                          context: context,
-                                          initialDate: DateTime.now(),
-                                          firstDate: DateTime(2020),
-                                          lastDate: DateTime(2100),
-                                        );
-
-                                        if (picked != null) {
-                                          _dateController.text =
-                                              "${picked.day}/${picked.month}/${picked.year}";
-                                        }
-                                      },
-                                    ),
-                                    ...inventoryDocIds.map((docId) {
-                                      return Container(
-                                        margin: EdgeInsets.symmetric(
-                                          vertical: 10,
-                                        ),
-                                        child: TextField(
-                                          controller: controllers[docId],
-                                          decoration: InputDecoration(
-                                            labelText: docId,
-                                            border: OutlineInputBorder(),
-                                          ),
-                                          keyboardType: TextInputType.number,
-                                        ),
-                                      );
-                                    }),
-
-                                    AddButton(
-                                      fn: () {
-                                        if (selectedItem == null) {
-                                          ScaffoldMessenger.of(
-                                            context,
-                                          ).showSnackBar(
-                                            const SnackBar(
-                                              content: Text(
-                                                "Please select a packager",
-                                              ),
+                                          decoration: BoxDecoration(
+                                            color: Colors.grey[400],
+                                            borderRadius: BorderRadius.circular(
+                                              10,
                                             ),
-                                          );
-                                          Navigator.pop(context);
-                                          return;
-                                        }
-                                        _sendData();
-                                      },
-                                    ),
-                                  ],
+                                          ),
+                                        ),
+                                      ),
+
+                                      const Text(
+                                        "Deliver Item",
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+
+                                      const SizedBox(height: 16),
+
+                                      packagerDocIds.isEmpty
+                                          ? Center(
+                                              child: Text("No Packager found"),
+                                            )
+                                          : DropdownButton<String>(
+                                              value:
+                                                  selectedItem, // Pass selectedItem directly
+                                              hint: Text("Select Packager"),
+                                              isExpanded: true,
+                                              onChanged: (String? value) {
+                                                setState(() {
+                                                  selectedItem =
+                                                      value; // update the selected value
+                                                });
+                                              },
+                                              items: packagerDocIds
+                                                  .map(
+                                                    (element) =>
+                                                        DropdownMenuItem<
+                                                          String
+                                                        >(
+                                                          value: element,
+                                                          child: Text(element),
+                                                        ),
+                                                  )
+                                                  .toList(),
+                                            ),
+
+                                      SizedBox(height: 15),
+                                      TextField(
+                                        controller: _dateController,
+                                        readOnly: true,
+                                        decoration: InputDecoration(
+                                          labelText: "Date",
+                                          border: OutlineInputBorder(),
+                                        ),
+                                        onTap: () async {
+                                          DateTime? picked =
+                                              await showDatePicker(
+                                                context: context,
+                                                initialDate: DateTime.now(),
+                                                firstDate: DateTime(2020),
+                                                lastDate: DateTime(2100),
+                                              );
+
+                                          if (picked != null) {
+                                            _dateController.text =
+                                                "${picked.day}/${picked.month}/${picked.year}";
+                                          }
+                                        },
+                                      ),
+                                      ...inventoryDocIds.map((docId) {
+                                        return Container(
+                                          margin: EdgeInsets.symmetric(
+                                            vertical: 10,
+                                          ),
+                                          child: TextField(
+                                            controller: controllers[docId],
+                                            decoration: InputDecoration(
+                                              labelText: docId,
+                                              border: OutlineInputBorder(),
+                                            ),
+                                            keyboardType: TextInputType.number,
+                                          ),
+                                        );
+                                      }),
+
+                                      AddButton(
+                                        fn: () {
+                                          if (selectedItem == null) {
+                                            ScaffoldMessenger.of(
+                                              context,
+                                            ).showSnackBar(
+                                              const SnackBar(
+                                                content: Text(
+                                                  "Please select a packager",
+                                                ),
+                                              ),
+                                            );
+                                            Navigator.pop(context);
+                                            return;
+                                          }
+                                          _sendData();
+                                        },
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),

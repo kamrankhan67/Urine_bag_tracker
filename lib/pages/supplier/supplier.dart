@@ -300,7 +300,8 @@ class _SupplierState extends State<Supplier> {
 
   @override
   Widget build(BuildContext context) {
-    final TextEditingController _addSupplierController = TextEditingController();
+    final TextEditingController _addSupplierController =
+        TextEditingController();
     return Scaffold(
       backgroundColor: const Color.fromRGBO(232, 226, 219, 1),
       body: SafeArea(
@@ -367,6 +368,9 @@ class _SupplierState extends State<Supplier> {
                     itemBuilder: (context, index) {
                       DocumentSnapshot ds = snapshot.data!.docs[index];
                       return GestureDetector(
+                        onLongPress: () {
+                          _showEditDeleteDialog(ds["name"], ds["name"]);
+                        },
                         onTap: () {
                           Navigator.push(
                             context,
@@ -437,8 +441,8 @@ class _SupplierState extends State<Supplier> {
                       ),
                       const Spacer(),
                       AddButton(
-                        
-                        fn: () => _addSupply(_addSupplierController.text, context),
+                        fn: () =>
+                            _addSupply(_addSupplierController.text, context),
                       ),
                     ],
                   ),
@@ -473,7 +477,11 @@ class _SupplierState extends State<Supplier> {
             ),
           ),
           const Spacer(),
-          const Icon(Icons.arrow_forward_outlined, color: Colors.white, size: 30),
+          const Icon(
+            Icons.arrow_forward_outlined,
+            color: Colors.white,
+            size: 30,
+          ),
         ],
       ),
     );
@@ -522,10 +530,8 @@ class _SupplierState extends State<Supplier> {
           .set({
             "name": supplierName,
             "quantity": 0,
-            "expected_carton": 0,
-            "value": 0,
-            "total_value": 0,
-            "total_quantity": 0,
+            "total value": 0,
+            "total quantity": 0,
             "created_at": FieldValue.serverTimestamp(),
           });
 
@@ -548,5 +554,91 @@ class _SupplierState extends State<Supplier> {
       });
     }
   }
-}
 
+  void _showEditDeleteDialog(String item, String categoryId) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          titleTextStyle: TextStyle(color: Colors.white),
+          title: Text("Do you want to delete $item ?"),
+          backgroundColor: Colors.black,
+          content: GestureDetector(
+            onTap: () => _deleteLabourCategory(categoryId),
+            child: Container(
+              height: 45,
+              width: MediaQuery.of(context).size.width,
+              decoration: BoxDecoration(
+                color: const Color.fromARGB(255, 255, 60, 1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Center(
+                child: Text(
+                  "Delete",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _deleteLabourCategory(String item) async {
+    try {
+      // 1) Delete all related docs in "Suplier Detail" where item == item
+      final querySnap = await FirebaseFirestore.instance
+          .collection("SuplierDetail")
+          .where("item", isEqualTo: item)
+          .get();
+
+      for (final doc in querySnap.docs) {
+        await doc.reference.delete();
+      }
+
+      // 2) Delete main docs
+      await FirebaseFirestore.instance
+          .collection("Supplier")
+          .doc(item)
+          .delete();
+      QuerySnapshot ledgerDocs = await FirebaseFirestore.instance
+          .collection("Inventory")
+          .doc(item)
+          .collection("Ledger")
+          .get();
+      for (var doc in ledgerDocs.docs) {
+        if (doc.exists) {
+          FirebaseFirestore.instance
+              .collection("Inventory")
+              .doc(item)
+              .collection("Ledger")
+              .doc(doc.id)
+              .delete();
+        }
+      }
+      await FirebaseFirestore.instance
+          .collection("Inventory")
+          .doc(item)
+          .delete();
+
+      if (!mounted) return;
+      Navigator.pop(context);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Category deleted successfully")),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context);
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Error: ${e.toString()}")));
+    }
+  }
+}

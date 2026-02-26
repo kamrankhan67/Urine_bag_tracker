@@ -405,6 +405,7 @@ class _PackagerDetailViewState extends State<PackagerDetailView> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),

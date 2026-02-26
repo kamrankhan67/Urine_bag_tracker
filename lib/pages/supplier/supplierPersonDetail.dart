@@ -284,59 +284,66 @@ class _SupplierPersonDetailState extends State<SupplierPersonDetail> {
                         itemCount: snapshot.data!.docs.length,
                         itemBuilder: (context, index) {
                           DocumentSnapshot ds = snapshot.data!.docs[index];
-                          return Container(
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            width: double.infinity,
-                            margin: EdgeInsets.symmetric(
-                              horizontal: 20,
-                              vertical: 10,
-                            ),
-                            padding: EdgeInsets.all(20),
-                            child: Column(
-                              children: [
-                                Text(
-                                  'Date : ${ds['date']}',
-                                  style: TextStyle(fontWeight: FontWeight.bold),
-                                ),
-                                SizedBox(height: 10),
-                                Row(
-                                  children: [
-                                    Text('Quantity '),
-                                    Spacer(),
-                                    Text(ds['quantity'].toString()),
-                                  ],
-                                ),
-                                Row(
-                                  children: [
-                                    Text('Item '),
-                                    Spacer(),
-                                    Text(ds['item']),
-                                  ],
-                                ),
-                                Row(
-                                  children: [
-                                    Text('Per Piece Price '),
-                                    Spacer(),
-                                    Text(
-                                      ds['quantity'] != 0
-                                          ? (ds['balance'] / ds['quantity'])
-                                                .toStringAsFixed(2)
-                                          : "0",
+                          return GestureDetector(
+                            onLongPress: () {
+                              _showEditDeleteDialog(ds.id);
+                            },
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              width: double.infinity,
+                              margin: EdgeInsets.symmetric(
+                                horizontal: 20,
+                                vertical: 10,
+                              ),
+                              padding: EdgeInsets.all(20),
+                              child: Column(
+                                children: [
+                                  Text(
+                                    'Date : ${ds['date']}',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
                                     ),
-                                  ],
-                                ),
-                                Text(
-                                  'Balance: ${ds['balance']}',
-                                  style: TextStyle(
-                                    color: Colors.red,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 17,
                                   ),
-                                ),
-                              ],
+                                  SizedBox(height: 10),
+                                  Row(
+                                    children: [
+                                      Text('Quantity '),
+                                      Spacer(),
+                                      Text(ds['quantity'].toString()),
+                                    ],
+                                  ),
+                                  Row(
+                                    children: [
+                                      Text('Item '),
+                                      Spacer(),
+                                      Text(ds['item']),
+                                    ],
+                                  ),
+                                  Row(
+                                    children: [
+                                      Text('Per Piece Price '),
+                                      Spacer(),
+                                      Text(
+                                        ds['quantity'] != 0
+                                            ? (ds['balance'] / ds['quantity'])
+                                                  .toStringAsFixed(2)
+                                            : "0",
+                                      ),
+                                    ],
+                                  ),
+                                  Text(
+                                    'Balance: ${ds['balance']}',
+                                    style: TextStyle(
+                                      color: Colors.red,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 17,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           );
                         },
@@ -350,47 +357,164 @@ class _SupplierPersonDetailState extends State<SupplierPersonDetail> {
     );
   }
 
-  void _addSupplyDetail(
-    String person,
-    String date,
-    int quantity,
-    String item,
-    int bal,
-    BuildContext context,
-  ) async {
+  
+
+  void _showEditDeleteDialog(String categoryId) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          titleTextStyle: TextStyle(color: Colors.white),
+          title: const Text("Do you want to change it?"),
+          backgroundColor: Colors.black,
+          content: GestureDetector(
+                      onTap: () => _deleteLabourCategory(categoryId),
+                      child: Container(
+          height: 45,
+          width: MediaQuery.of(context).size.width,
+          decoration: BoxDecoration(
+            color: const Color.fromARGB(255, 255, 60, 1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: const Center(
+            child: Text(
+              "Delete",
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+                      ),
+                    )
+        );
+      },
+    );
+  }
+
+  
+void _addSupplyDetail(
+  String person,
+  String date,
+  int quantity,
+  String item,
+  int bal,
+  BuildContext context,
+) async {
+  String randomDocId = DateTime.now().millisecondsSinceEpoch.toString();
+  try {
+    // Adding to Bills collection
     await FirebaseFirestore.instance
         .collection("SuplierDetail")
         .doc(widget.personName)
         .collection("Bills")
         .doc()
         .set({
-          "date": date,
-          "quantity": quantity,
-          "item": item,
-          "balance": bal,
-          "createdAt": FieldValue.serverTimestamp(),
-        });
+      "date": date,
+      "quantity": quantity,
+      "item": item,
+      "balance": bal,
+      "ledgerDocId": randomDocId, // Ensure this is saved when adding the bill
+      "createdAt": FieldValue.serverTimestamp(),
+    });
 
+    // Adding to Inventory Ledger
     await FirebaseFirestore.instance
         .collection("Inventory")
         .doc(widget.supplyItem)
         .collection("Ledger")
-        .doc()
+        .doc(randomDocId)
         .set({
-          "Date": date,
-          "Quantity": "+$quantity",
-          "Color": "Green",
-          "Description": person,
-          "createdAt":FieldValue.serverTimestamp(),
-        });
+      "Date": date,
+      "Quantity": "+$quantity",
+      "Color": "Green",
+      "Description": person,
+      "createdAt": FieldValue.serverTimestamp(),
+    });
+
+    // Updating Inventory totals
     await FirebaseFirestore.instance
         .collection("Inventory")
         .doc(widget.supplyItem)
         .update({
-          "quantity": FieldValue.increment(quantity),
-          "total quantity": FieldValue.increment(quantity),
-          "total value": FieldValue.increment(bal),
-        })
-        .then((value) => Navigator.pop(context));
+      "quantity": FieldValue.increment(quantity),
+      "total quantity": FieldValue.increment(quantity),
+      "total value": FieldValue.increment(bal),
+    });
+
+    // Close the bottom sheet after successfully adding the supply detail
+    Navigator.pop(context);
+  } catch (e) {
+    Navigator.pop(context);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Error: ${e.toString()}")),
+    );
   }
+}
+
+Future<void> _deleteLabourCategory(String categoryId) async {
+  try {
+    // Get the document from the "Bills" collection
+    DocumentSnapshot ds = await FirebaseFirestore.instance
+        .collection("SuplierDetail")
+        .doc(widget.personName)
+        .collection("Bills")
+        .doc(categoryId)
+        .get();
+
+    if (!ds.exists) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Bill not found")),
+      );
+      return;
+    }
+
+    // Check if the ledgerDocId field exists in the document
+    var ledgerDocId = ds["ledgerDocId"];
+    if (ledgerDocId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Ledger document ID not found")),
+      );
+      return;
+    }
+
+    // Now, proceed to delete from the "Bills" collection
+    await FirebaseFirestore.instance
+        .collection("SuplierDetail")
+        .doc(widget.personName)
+        .collection("Bills")
+        .doc(categoryId)
+        .delete();
+
+    // Delete from the Inventory Ledger subcollection
+    await FirebaseFirestore.instance
+        .collection("Inventory")
+        .doc(widget.supplyItem)
+        .collection("Ledger")
+        .doc(ledgerDocId)
+        .delete();
+
+    // Update the Inventory totals (decrease the quantities)
+    await FirebaseFirestore.instance
+        .collection("Inventory")
+        .doc(widget.supplyItem)
+        .update({
+      "quantity": FieldValue.increment(-ds["quantity"]),
+      "total quantity": FieldValue.increment(-ds["quantity"]),
+    });
+
+    // Show success message
+    Navigator.pop(context);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Category deleted successfully")),
+    );
+  } catch (e) {
+    Navigator.pop(context);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Error: ${e.toString()}")),
+    );
+  }
+}
+
 }

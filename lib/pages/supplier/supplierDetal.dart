@@ -67,7 +67,6 @@ class _SupplierDetailState extends State<SupplierDetail> {
                         decoration: InputDecoration(
                           labelText: "Name",
                           border: OutlineInputBorder(),
-                          
                         ),
                         keyboardType: TextInputType.name,
                       ),
@@ -155,10 +154,7 @@ class _SupplierDetailState extends State<SupplierDetail> {
             StreamBuilder(
               stream: FirebaseFirestore.instance
                   .collection("SuplierDetail")
-                  .where(
-                    "item",
-                    isEqualTo: widget.supplyItem,
-                  ) 
+                  .where("item", isEqualTo: widget.supplyItem)
                   .snapshots(),
               builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
@@ -177,16 +173,21 @@ class _SupplierDetailState extends State<SupplierDetail> {
                   itemBuilder: (context, index) {
                     DocumentSnapshot ds = snapshot.data!.docs[index];
                     return GestureDetector(
+                      onLongPress: () {
+                        _showEditDeleteDialog(ds.id, ds.id);
+                      },
                       onTap: () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) =>
-                                SupplierPersonDetail(personName: ds.id,supplyItem: widget.supplyItem,),
+                            builder: (context) => SupplierPersonDetail(
+                              personName: ds.id,
+                              supplyItem: widget.supplyItem,
+                            ),
                           ),
                         );
                       },
-                      child: _itemSupplier(ds.id,),
+                      child: _itemSupplier(ds.id),
                     );
                   },
                 );
@@ -217,85 +218,173 @@ class _SupplierDetailState extends State<SupplierDetail> {
     );
   }
 
- Future<void> _addSupply(
-  String name,
-  String loc,
-  String ph,
-  BuildContext context,
-) async {
-  String supplierName = name.trim();
-  String location = loc.trim();
-  String phone = ph.trim();
+  Future<void> _addSupply(
+    String name,
+    String loc,
+    String ph,
+    BuildContext context,
+  ) async {
+    String supplierName = name.trim();
+    String location = loc.trim();
+    String phone = ph.trim();
 
-  if (supplierName.isEmpty) {
-    Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Supplier name cannot be empty.")),
-    );
-    return;
-  }
-
-  if (location.isEmpty) {
-    Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Location cannot be empty.")),
-    );
-    return;
-  }
-
-  if (phone.isEmpty) {
-    Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Phone number cannot be empty.")),
-    );
-    return;
-  }
-
-  // Basic phone validation (digits only, 7–15 length)
-  if (!RegExp(r'^[0-9]{7,15}$').hasMatch(phone)) {
-    Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Enter a valid phone number.")),
-    );
-    return;
-  }
-
-  try {
-    DocumentReference ref = FirebaseFirestore.instance
-        .collection("SuplierDetail")
-        .doc(supplierName);
-
-    DocumentSnapshot existing = await ref.get();
-
-    if (existing.exists) {
+    if (supplierName.isEmpty) {
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Supplier already exists.")),
+        const SnackBar(content: Text("Supplier name cannot be empty.")),
       );
       return;
     }
 
-    await ref.set({
-      "location": location,
-      "phone": phone,
-      "item": widget.supplyItem,
-      "created_at": FieldValue.serverTimestamp(),
-    });
+    if (location.isEmpty) {
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Location cannot be empty.")),
+      );
+      return;
+    }
 
-    if (!mounted) return;
+    if (phone.isEmpty) {
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Phone number cannot be empty.")),
+      );
+      return;
+    }
 
-    Navigator.pop(context);
+    // Basic phone validation (digits only, 7–15 length)
+    if (!RegExp(r'^[0-9]{7,15}$').hasMatch(phone)) {
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Enter a valid phone number.")),
+      );
+      return;
+    }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Supplier added successfully!")),
-    );
-  } catch (e) {
-    if (!mounted) return;
+    try {
+      DocumentReference ref = FirebaseFirestore.instance
+          .collection("SuplierDetail")
+          .doc(supplierName);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Error: ${e.toString()}")),
+      DocumentSnapshot existing = await ref.get();
+
+      if (existing.exists) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Supplier already exists.")),
+        );
+        return;
+      }
+
+      await ref.set({
+        "location": location,
+        "phone": phone,
+        "item": widget.supplyItem,
+        "created_at": FieldValue.serverTimestamp(),
+      });
+
+      if (!mounted) return;
+
+      Navigator.pop(context);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Supplier added successfully!")),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Error: ${e.toString()}")));
+    }
+  }
+
+  void _showEditDeleteDialog(String item, String categoryId) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          titleTextStyle: TextStyle(color: Colors.white),
+          title: Text("Do you want to delete $item ?"),
+          backgroundColor: Colors.black,
+          content: GestureDetector(
+            onTap: () => _deleteLabourCategory(categoryId),
+            child: Container(
+              height: 45,
+              width: MediaQuery.of(context).size.width,
+              decoration: BoxDecoration(
+                color: const Color.fromARGB(255, 255, 60, 1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Center(
+                child: Text(
+                  "Delete",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
-}
 
+  Future<void> _deleteLabourCategory(String item) async {
+    int quantity = 0;
+    int totalValue = 0;
+    int totalQuantity = 0;
+
+    try {
+      // 1) Delete all related docs in "Suplier Detail" where item == item
+
+      // 2) Delete main docs
+      await FirebaseFirestore.instance
+          .collection("SuplierDetail")
+          .doc(item)
+          .delete();
+      QuerySnapshot documents = await FirebaseFirestore.instance
+          .collection("Inventory")
+          .doc(widget.supplyItem)
+          .collection("Ledger")
+          .get();
+      for (var doc in documents.docs) {
+        if (doc["Description"] == item) {
+          await FirebaseFirestore.instance
+              .collection("Inventory")
+              .doc(widget.supplyItem)
+              .collection("Ledger")
+              .doc(doc.id)
+              .delete();
+
+          quantity += int.parse(doc["Quantity"]);
+        }
+      }
+      await FirebaseFirestore.instance
+          .collection("Inventory")
+          .doc(widget.supplyItem)
+          .update({
+            "quantity":FieldValue.increment(-quantity),
+            "total quantity":FieldValue.increment(-quantity),
+            
+          });
+
+      if (!mounted) return;
+      Navigator.pop(context);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Person deleted successfully")),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context);
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Error: ${e.toString()}")));
+    }
+  }
 }
