@@ -12,267 +12,202 @@ class SupplierDetail extends StatefulWidget {
 }
 
 class _SupplierDetailState extends State<SupplierDetail> {
+  final TextEditingController _supplierController = TextEditingController();
+  final TextEditingController _locationController = TextEditingController();
+  final TextEditingController _phoneNoController = TextEditingController();
+  bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _supplierController.dispose();
+    _locationController.dispose();
+    _phoneNoController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    TextEditingController _supplierController = TextEditingController();
-    TextEditingController _locationController = TextEditingController();
-    TextEditingController _phoneNoController = TextEditingController();
+    final theme = Theme.of(context);
     return Scaffold(
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
-        onPressed: () {
-          showModalBottomSheet(
-            context: context,
-            isScrollControlled: true,
-            shape: const RoundedRectangleBorder(
-              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-            ),
-            builder: (context) {
-              return Padding(
-                padding: EdgeInsets.only(
-                  bottom: MediaQuery.of(context).viewInsets.bottom,
-                ),
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  margin: EdgeInsets.symmetric(horizontal: 20),
-                  height: MediaQuery.of(context).size.height * 0.6,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Center(
-                        child: Container(
-                          width: 40,
-                          height: 5,
-                          margin: const EdgeInsets.only(bottom: 16),
-                          decoration: BoxDecoration(
-                            color: Colors.grey[400],
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                      ),
+      appBar: AppBar(
+        title: Text('${widget.supplyItem} Suppliers'),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _showAddSheet,
+        label: const Text("Add Supplier"),
+        icon: const Icon(Icons.person_add_alt_outlined),
+      ),
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection("SuplierDetail")
+            .where("item", isEqualTo: widget.supplyItem)
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return const Center(child: Text("Error loading suppliers"));
+          }
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.people_outline, size: 64, color: Colors.grey[300]),
+                  const SizedBox(height: 16),
+                  Text("No suppliers for ${widget.supplyItem}", style: const TextStyle(color: Colors.grey)),
+                ],
+              ),
+            );
+          }
 
-                      const Text(
-                        "Add Supplier",
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-
-                      const SizedBox(height: 16),
-
-                      TextField(
-                        controller: _supplierController,
-                        decoration: InputDecoration(
-                          labelText: "Name",
-                          border: OutlineInputBorder(),
-                        ),
-                        keyboardType: TextInputType.name,
-                      ),
-
-                      const SizedBox(height: 12),
-
-                      TextField(
-                        controller: _locationController,
-                        decoration: InputDecoration(
-                          labelText: "Location",
-                          border: OutlineInputBorder(),
-                        ),
-                        keyboardType: TextInputType.streetAddress,
-                      ),
-                      const SizedBox(height: 12),
-
-                      TextField(
-                        controller: _phoneNoController,
-                        decoration: InputDecoration(
-                          labelText: "Phone No",
-                          border: OutlineInputBorder(),
-                        ),
-                        keyboardType: TextInputType.phone,
-                      ),
-                      const SizedBox(height: 12),
-                      const Spacer(),
-                      AddButton(
-                        fn: () => _addSupply(
-                          _supplierController.text,
-                          _locationController.text,
-                          _phoneNoController.text,
-                          context,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
+          return ListView.builder(
+            padding: const EdgeInsets.all(16),
+            physics: const BouncingScrollPhysics(),
+            itemCount: snapshot.data!.docs.length,
+            itemBuilder: (context, index) {
+              final ds = snapshot.data!.docs[index];
+              return _supplierCard(ds, theme);
             },
           );
         },
-        child: const Icon(Icons.add),
       ),
-      backgroundColor: const Color.fromRGBO(232, 226, 219, 1),
-      body: SafeArea(
-        child: Column(
+    );
+  }
+
+  Widget _supplierCard(DocumentSnapshot ds, ThemeData theme) {
+    final name = ds.id;
+    final location = ds["location"] ?? "Unknown Location";
+    final phone = ds["phone"] ?? "No Phone";
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        leading: CircleAvatar(
+          backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
+          child: Icon(Icons.person_outline, color: theme.colorScheme.primary),
+        ),
+        title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              height: 70,
-              padding: EdgeInsets.only(left: 20, top: 10, bottom: 10),
-              width: MediaQuery.of(context).size.width,
-              decoration: BoxDecoration(
-                color: Color.fromRGBO(26, 50, 99, 1),
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(10),
-                  bottomRight: Radius.circular(10),
-                ),
-              ),
-              child: Center(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    IconButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
-                      icon: Icon(Icons.arrow_back_rounded, color: Colors.white),
-                    ),
-
-                    Text(
-                      '${widget.supplyItem} Supplier',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 21,
-                      ),
-                    ),
-                    SizedBox(width: MediaQuery.of(context).size.width / 6),
-                  ],
-                ),
-              ),
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                const Icon(Icons.location_on_outlined, size: 14, color: Colors.grey),
+                const SizedBox(width: 4),
+                Text(location, style: const TextStyle(fontSize: 12)),
+              ],
             ),
-            SizedBox(height: 10),
-
-            StreamBuilder(
-              stream: FirebaseFirestore.instance
-                  .collection("SuplierDetail")
-                  .where("item", isEqualTo: widget.supplyItem)
-                  .snapshots(),
-              builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(
-                    child: CircularProgressIndicator(color: Colors.lightBlue),
-                  );
-                } else if (snapshot.hasError) {
-                  return const Center(child: Text("Error loading Suppliers"));
-                } else if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return const Center(child: Text("No Supplier found"));
-                }
-                return ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: snapshot.data!.docs.length,
-                  itemBuilder: (context, index) {
-                    DocumentSnapshot ds = snapshot.data!.docs[index];
-                    return GestureDetector(
-                      onLongPress: () {
-                        _showEditDeleteDialog(ds.id, ds.id);
-                      },
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => SupplierPersonDetail(
-                              personName: ds.id,
-                              supplyItem: widget.supplyItem,
-                            ),
-                          ),
-                        );
-                      },
-                      child: _itemSupplier(ds.id),
-                    );
-                  },
-                );
-              },
+            const SizedBox(height: 2),
+            Row(
+              children: [
+                const Icon(Icons.phone_outlined, size: 14, color: Colors.grey),
+                const SizedBox(width: 4),
+                Text(phone, style: const TextStyle(fontSize: 12)),
+              ],
             ),
           ],
         ),
+        trailing: const Icon(Icons.chevron_right_rounded),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => SupplierPersonDetail(
+                personName: name,
+                supplyItem: widget.supplyItem,
+              ),
+            ),
+          );
+        },
+        onLongPress: () => _showDeleteDialog(name),
       ),
     );
   }
 
-  Widget _itemSupplier(String text) {
-    return Container(
-      decoration: BoxDecoration(color: Colors.blueGrey),
-      width: double.infinity,
-      height: 50,
-      margin: EdgeInsets.symmetric(horizontal: 20, vertical: 5),
-      child: Center(
-        child: Text(
-          text,
-          style: TextStyle(
+  void _showAddSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          decoration: const BoxDecoration(
             color: Colors.white,
-            fontSize: 17,
-            fontWeight: FontWeight.bold,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
           ),
-        ),
-      ),
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom + 32,
+            top: 24,
+            left: 24,
+            right: 24,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2))),
+              ),
+              const SizedBox(height: 24),
+              const Text("Register Supplier", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 24),
+              TextField(
+                controller: _supplierController,
+                decoration: const InputDecoration(labelText: "Supplier Name", prefixIcon: Icon(Icons.person_outline)),
+                keyboardType: TextInputType.name,
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _locationController,
+                decoration: const InputDecoration(labelText: "Location", prefixIcon: Icon(Icons.location_on_outlined)),
+                keyboardType: TextInputType.streetAddress,
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _phoneNoController,
+                decoration: const InputDecoration(labelText: "Phone Number", prefixIcon: Icon(Icons.phone_outlined)),
+                keyboardType: TextInputType.phone,
+              ),
+              const SizedBox(height: 32),
+              AddButton(
+                isLoading: _isLoading,
+                text: "Add Supplier",
+                fn: () => _addSupply(_supplierController.text, _locationController.text, _phoneNoController.text, context),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
-  Future<void> _addSupply(
-    String name,
-    String loc,
-    String ph,
-    BuildContext context,
-  ) async {
+  Future<void> _addSupply(String name, String loc, String ph, BuildContext context) async {
     String supplierName = name.trim();
     String location = loc.trim();
     String phone = ph.trim();
 
-    if (supplierName.isEmpty) {
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Supplier name cannot be empty.")),
-      );
+    if (supplierName.isEmpty || location.isEmpty || phone.isEmpty) {
+      _showSnack("Please fill all fields.");
       return;
     }
 
-    if (location.isEmpty) {
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Location cannot be empty.")),
-      );
-      return;
-    }
-
-    if (phone.isEmpty) {
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Phone number cannot be empty.")),
-      );
-      return;
-    }
-
-    // Basic phone validation (digits only, 7–15 length)
     if (!RegExp(r'^[0-9]{7,15}$').hasMatch(phone)) {
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Enter a valid phone number.")),
-      );
+      _showSnack("Enter a valid phone number.");
       return;
     }
 
+    setState(() => _isLoading = true);
     try {
-      DocumentReference ref = FirebaseFirestore.instance
-          .collection("SuplierDetail")
-          .doc(supplierName);
-
+      DocumentReference ref = FirebaseFirestore.instance.collection("SuplierDetail").doc(supplierName);
       DocumentSnapshot existing = await ref.get();
 
       if (existing.exists) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Supplier already exists.")),
-        );
+        _showSnack("Supplier already exists.");
+        if (mounted) Navigator.pop(context);
         return;
       }
 
@@ -283,108 +218,74 @@ class _SupplierDetailState extends State<SupplierDetail> {
         "created_at": FieldValue.serverTimestamp(),
       });
 
-      if (!mounted) return;
-
-      Navigator.pop(context);
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Supplier added successfully!")),
-      );
+      _supplierController.clear();
+      _locationController.clear();
+      _phoneNoController.clear();
+      if (mounted) Navigator.pop(context);
+      _showSnack("Supplier registered successfully!");
     } catch (e) {
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Error: ${e.toString()}")));
+      _showSnack("Error adding supplier: $e");
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  void _showEditDeleteDialog(String item, String categoryId) {
+  void _showDeleteDialog(String name) {
     showDialog(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          titleTextStyle: TextStyle(color: Colors.white),
-          title: Text("Do you want to delete $item ?"),
-          backgroundColor: Colors.black,
-          content: GestureDetector(
-            onTap: () => _deleteLabourCategory(categoryId),
-            child: Container(
-              height: 45,
-              width: MediaQuery.of(context).size.width,
-              decoration: BoxDecoration(
-                color: const Color.fromARGB(255, 255, 60, 1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Center(
-                child: Text(
-                  "Delete",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
+      builder: (context) => AlertDialog(
+        title: Text("Remove Supplier?"),
+        content: Text("Delete '$name' from ${widget.supplyItem} list? This will also remove their transaction records from inventory ledger."),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _deleteSupplier(name);
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+            child: const Text("Delete"),
           ),
-        );
-      },
+        ],
+      ),
     );
   }
 
-  Future<void> _deleteLabourCategory(String item) async {
-    int quantity = 0;
-    int totalValue = 0;
-    int totalQuantity = 0;
-
+  Future<void> _deleteSupplier(String name) async {
+    int quantityToDelete = 0;
     try {
-      // 1) Delete all related docs in "Suplier Detail" where item == item
+      // 1) Delete SuplierDetail doc
+      await FirebaseFirestore.instance.collection("SuplierDetail").doc(name).delete();
 
-      // 2) Delete main docs
-      await FirebaseFirestore.instance
-          .collection("SuplierDetail")
-          .doc(item)
-          .delete();
-      QuerySnapshot documents = await FirebaseFirestore.instance
+      // 2) Remove related ledger entries and calculate quantity for correction
+      QuerySnapshot ledgerDocs = await FirebaseFirestore.instance
           .collection("Inventory")
           .doc(widget.supplyItem)
           .collection("Ledger")
           .get();
-      for (var doc in documents.docs) {
-        if (doc["Description"] == item) {
-          await FirebaseFirestore.instance
-              .collection("Inventory")
-              .doc(widget.supplyItem)
-              .collection("Ledger")
-              .doc(doc.id)
-              .delete();
 
-          quantity += int.parse(doc["Quantity"]);
+      for (var doc in ledgerDocs.docs) {
+        if (doc["Description"] == name) {
+          final qText = doc["Quantity"].toString().replaceAll("+", "");
+          quantityToDelete += int.tryParse(qText) ?? 0;
+          await doc.reference.delete();
         }
       }
-      await FirebaseFirestore.instance
-          .collection("Inventory")
-          .doc(widget.supplyItem)
-          .update({
-            "quantity":FieldValue.increment(-quantity),
-            "total quantity":FieldValue.increment(-quantity),
-            
-          });
 
-      if (!mounted) return;
-      Navigator.pop(context);
+      // 3) Update Inventory totals
+      await FirebaseFirestore.instance.collection("Inventory").doc(widget.supplyItem).update({
+        "quantity": FieldValue.increment(-quantityToDelete),
+        "total quantity": FieldValue.increment(-quantityToDelete),
+      });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Person deleted successfully")),
-      );
+      _showSnack("Supplier removed successfully");
     } catch (e) {
-      if (!mounted) return;
-      Navigator.pop(context);
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Error: ${e.toString()}")));
+      _showSnack("Error deleting supplier: $e");
     }
+  }
+
+  void _showSnack(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 }

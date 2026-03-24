@@ -30,7 +30,7 @@ class _SplashState extends State<Splash>
 
     _controller.forward();
 
-    Future.delayed(const Duration(seconds: 5), () {
+    Future.delayed(const Duration(seconds: 3), () {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const Home()),
@@ -53,8 +53,8 @@ class _SplashState extends State<Splash>
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              Color(0xFF1C3B4A),
-              Color(0xFF296374),
+              Color.fromARGB(255, 0, 0, 0),
+              Color.fromARGB(255, 23, 54, 63),
               Color(0xFF2F7C8F),
             ],
             begin: Alignment.topLeft,

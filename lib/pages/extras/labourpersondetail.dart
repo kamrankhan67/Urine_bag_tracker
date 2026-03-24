@@ -1,31 +1,5 @@
-// import 'package:flutter/material.dart';
-
-// class LabourPersonDetail extends StatefulWidget {
-//   const LabourPersonDetail({super.key});
-
-//   @override
-//   State<LabourPersonDetail> createState() => _LabourPersonDetailState();
-// }
-
-// class _LabourPersonDetailState extends State<LabourPersonDetail> {
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       body: SafeArea(child:SingleChildScrollView(
-//         child: Column(
-//           children: [
-
-//           ],
-//         ),
-//       )),
-//     );
-//   }
-
-// }
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:urine_bag/commons/addButton.dart';
 
 class Labourpersondetail extends StatefulWidget {
   const Labourpersondetail({super.key, required this.personName, required this.category});
@@ -41,6 +15,7 @@ class _LabourpersondetailState extends State<Labourpersondetail> {
   final TextEditingController _itemController = TextEditingController();
   final TextEditingController _dateController = TextEditingController();
   final TextEditingController _quantityController = TextEditingController();
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -53,351 +28,378 @@ class _LabourpersondetailState extends State<Labourpersondetail> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
-        onPressed: () {
-          showModalBottomSheet(
-            context: context,
-            isScrollControlled: true,
-            shape: const RoundedRectangleBorder(
-              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-            ),
-            builder: (context) {
-              return Padding(
-                padding: EdgeInsets.only(
-                  bottom: MediaQuery.of(context).viewInsets.bottom,
-                ),
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  margin: EdgeInsets.symmetric(horizontal: 20),
-                  height: MediaQuery.of(context).size.height * 0.7,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Center(
-                        child: Container(
-                          width: 40,
-                          height: 5,
-                          margin: const EdgeInsets.only(bottom: 16),
-                          decoration: BoxDecoration(
-                            color: Colors.grey[400],
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                      ),
-                      const Text(
-                        "Add Labour",
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      // TextField(
-                      //   controller: _dateController,
-                      //   decoration: InputDecoration(
-                      //     labelText: "Date",
-                      //     border: OutlineInputBorder(),
-                      //   ),
-                      //   keyboardType: TextInputType.datetime,
-                      // ),
-                      TextField(
-                        controller: _dateController,
-                        readOnly: true,
-                        decoration: InputDecoration(
-                          labelText: "Date",
-                          border: OutlineInputBorder(),
-                        ),
-                        onTap: () async {
-                          DateTime? picked = await showDatePicker(
-                            context: context,
-                            initialDate: DateTime.now(),
-                            firstDate: DateTime(2020),
-                            lastDate: DateTime(2100),
-                          );
-
-                          if (picked != null) {
-                            _dateController.text =
-                                "${picked.day}/${picked.month}/${picked.year}";
-                          }
-                        },
-                      ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: _quantityController,
-                        decoration: InputDecoration(
-                          labelText: "Quantity",
-                          border: OutlineInputBorder(),
-                        ),
-                        keyboardType: TextInputType.number,
-                      ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: _itemController,
-                        decoration: InputDecoration(
-                          labelText: "Item",
-                          border: OutlineInputBorder(),
-                        ),
-                        keyboardType: TextInputType.text,
-                      ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: _amountController,
-                        decoration: InputDecoration(
-                          labelText: "Amount",
-                          border: OutlineInputBorder(),
-                        ),
-                        keyboardType: TextInputType.number,
-                      ),
-                      const SizedBox(height: 12),
-                      const Spacer(),
-                      AddButton(
-                        fn: () {
-                          if (_dateController.text.isEmpty ||
-                              _quantityController.text.isEmpty ||
-                              _itemController.text.isEmpty ||
-                              _amountController.text.isEmpty) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text("Please fill all fields"),
-                              ),
-                            );
-                            return;
-                          }
-
-                          final quantity = int.tryParse(
-                            _quantityController.text,
-                          );
-                          final amount = int.tryParse(_amountController.text);
-
-                          if (quantity == null || amount == null) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text("Enter valid numbers"),
-                              ),
-                            );
-                            return;
-                          }
-
-                          _addLabourDetail(
-                            widget.personName,
-                            _dateController.text,
-                            quantity,
-                            _itemController.text,
-                            amount,
-                            context,
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          );
-        },
-        child: const Icon(Icons.add),
+      appBar: AppBar(
+        title: Text(widget.personName),
       ),
-      backgroundColor: const Color.fromRGBO(232, 226, 219, 1),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              Container(
-                padding: EdgeInsets.only(left: 20, top: 10, bottom: 10),
-                width: MediaQuery.of(context).size.width,
-                decoration: BoxDecoration(
-                  color: Color.fromRGBO(26, 50, 99, 1),
-                  borderRadius: BorderRadius.only(
-                    bottomLeft: Radius.circular(10),
-                    bottomRight: Radius.circular(10),
-                  ),
-                ),
-                child: StreamBuilder<DocumentSnapshot>(
-                  stream: FirebaseFirestore.instance
-                      .collection("Labour Person")
-                      .doc(widget.personName)
-                      .snapshots(),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
-                    } else if (snapshot.hasError) {
-                      return const Center(
-                        child: Text("Error loading supplier info"),
-                      );
-                    } else if (!snapshot.hasData || !snapshot.data!.exists) {
-                      return const Center(child: Text("Supplier not found"));
-                    }
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _showAddSheet,
+        label: const Text("Add Record"),
+        icon: const Icon(Icons.add_task_rounded),
+      ),
+      body: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        child: Column(
+          children: [
+            /// 👤 Profile Section
+            _buildProfileSection(theme),
 
-                    var supplier = snapshot.data!;
-                    return Column(
-                      children: [
-                        Center(
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              IconButton(
-                                onPressed: () {
-                                  Navigator.pop(context);
-                                },
-                                icon: Icon(
-                                  Icons.arrow_back_rounded,
-                                  color: Colors.white,
-                                ),
-                              ),
-                              Text(
-                                supplier.id,
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 23,
-                                ),
-                              ),
-                              SizedBox(
-                                width: MediaQuery.of(context).size.width / 6,
-                              ),
-                            ],
-                          ),
-                        ),
-                        Text(
-                          'Address : ${supplier['Address']}',
-                          style: TextStyle(color: Colors.white),
-                        ),
-                        Text(
-                          'Phone No : ${supplier['Phone']}',
-                          style: TextStyle(color: Colors.white),
-                        ),
-                      ],
-                    );
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 24, 16, 8),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text("Work History", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              ),
+            ),
+
+            StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection("Labour Person")
+                  .doc(widget.personName)
+                  .collection("Ledger")
+                  .orderBy('createdAt', descending: true)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Padding(
+                    padding: EdgeInsets.all(32),
+                    child: Center(child: CircularProgressIndicator()),
+                  );
+                }
+                if (snapshot.hasError) {
+                  return const Center(child: Text("Error loading records"));
+                }
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return const Padding(
+                    padding: EdgeInsets.all(40.0),
+                    child: Center(
+                      child: Column(
+                        children: [
+                          Icon(Icons.history_outlined, size: 48, color: Colors.grey),
+                          SizedBox(height: 8),
+                          const Text("No work records found", style: TextStyle(color: Colors.grey)),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+
+                return ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: snapshot.data!.docs.length,
+                  itemBuilder: (context, index) {
+                    final ds = snapshot.data!.docs[index];
+                    return _workCard(ds, theme);
                   },
-                ),
-              ),
-              StreamBuilder(
-                stream: FirebaseFirestore.instance
-                    .collection("Labour Person")
-                    .doc(widget.personName)
-                    .collection("Ledger")
-                    .snapshots(),
-                builder:
-                    (
-                      BuildContext context,
-                      AsyncSnapshot<QuerySnapshot> snapshot,
-                    ) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(
-                          child: CircularProgressIndicator(
-                            color: Colors.blueAccent,
-                          ),
-                        );
-                      } else if (snapshot.hasError) {
-                        return const Center(
-                          child: Text("Error loading Supplier Detail"),
-                        );
-                      } else if (!snapshot.hasData ||
-                          snapshot.data!.docs.isEmpty) {
-                        return const Center(child: Text("No Purchase found"));
-                      }
-                      return ListView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: snapshot.data!.docs.length,
-                        itemBuilder: (context, index) {
-                          DocumentSnapshot ds = snapshot.data!.docs[index];
-                          return Container(
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            width: double.infinity,
-                            margin: EdgeInsets.symmetric(
-                              horizontal: 20,
-                              vertical: 10,
-                            ),
-                            padding: EdgeInsets.all(20),
-                            child: Column(
-                              children: [
-                                Text(
-                                  'Date : ${ds['date']}',
-                                  style: TextStyle(fontWeight: FontWeight.bold),
-                                ),
-                                SizedBox(height: 10),
-                                Row(
-                                  children: [
-                                    Text('Quantity '),
-                                    Spacer(),
-                                    Text(ds['quantity'].toString()),
-                                  ],
-                                ),
-                                Row(
-                                  children: [
-                                    Text('Item '),
-                                    Spacer(),
-                                    Text(ds['item']),
-                                  ],
-                                ),
-                                Row(
-                                  children: [
-                                    Text('Per Piece Price '),
-                                    Spacer(),
-                                    Text(
-                                      ds['quantity'] != 0
-                                          ? (ds['amount'] / ds['quantity'])
-                                                .toStringAsFixed(2)
-                                          : "0",
-                                    ),
-                                  ],
-                                ),
-                                Text(
-                                  'Amount: ${ds['amount']}',
-                                  style: TextStyle(
-                                    color: Colors.red,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 17,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        },
-                      );
-                    },
-              ),
-            ],
-          ),
+                );
+              },
+            ),
+            const SizedBox(height: 100),
+          ],
         ),
       ),
     );
   }
 
-  void _addLabourDetail(
-    String person,
-    String date,
-    int quantity,
-    String item,
-    int amount,
-    BuildContext context,
-  ) async {
-    await FirebaseFirestore.instance
-        .collection("Labour Person")
-        .doc(widget.personName)
-        .collection("Ledger")
-        .doc()
-        .set({
-          "date": date,
-          "quantity": quantity,
-          "item": item,
-          "amount": amount,
-          "createdAt": FieldValue.serverTimestamp(),
-        });
-    FirebaseFirestore.instance
-        .collection("Extras")
-        .doc(widget.category)
-        .update({
-          "Total Amount": FieldValue.increment(amount),
-          "Total Pieces": FieldValue.increment(quantity),
-        })
-        .then((value) => Navigator.pop(context));
+  Widget _buildProfileSection(ThemeData theme) {
+    return StreamBuilder<DocumentSnapshot>(
+      stream: FirebaseFirestore.instance.collection("Labour Person").doc(widget.personName).snapshots(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData || !snapshot.data!.exists) return const SizedBox();
+        final data = snapshot.data!;
+        
+        return Container(
+          width: double.infinity,
+          margin: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.primary.withOpacity(0.05),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: theme.colorScheme.primary.withOpacity(0.1)),
+          ),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                   Container(
+                     padding: const EdgeInsets.all(12),
+                     decoration: BoxDecoration(color: theme.colorScheme.primary.withOpacity(0.1), shape: BoxShape.circle),
+                     child: Icon(Icons.engineering_outlined, color: theme.colorScheme.primary),
+                   ),
+                   const SizedBox(width: 16),
+                   Expanded(
+                     child: Column(
+                       crossAxisAlignment: CrossAxisAlignment.start,
+                       children: [
+                         Text(widget.category, style: TextStyle(color: theme.colorScheme.primary, fontWeight: FontWeight.bold, fontSize: 13)),
+                         Text(widget.personName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
+                       ],
+                     ),
+                   ),
+                ],
+              ),
+              const Divider(height: 32),
+              Row(
+                children: [
+                  _infoBit(Icons.location_on_outlined, "Address", data['Address'] ?? "N/A"),
+                  const Spacer(),
+                  _infoBit(Icons.phone_outlined, "Phone", data['Phone'] ?? "N/A"),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _infoBit(IconData icon, String label, String value) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: Colors.grey),
+        const SizedBox(width: 8),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey)),
+            Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _workCard(DocumentSnapshot ds, ThemeData theme) {
+    final data = ds.data() as Map<String, dynamic>;
+    final date = data['date'] ?? "";
+    final quantity = data['quantity'] ?? 0;
+    final itemName = data['item'] ?? "";
+    final amount = data['amount'] ?? 0;
+    final perPiece = quantity != 0 ? (amount / quantity) : 0.0;
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(date, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+                IconButton(
+                  onPressed: () => _showDeleteDialog(ds.id, quantity, amount),
+                  icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  visualDensity: VisualDensity.compact,
+                ),
+              ],
+            ),
+            const Divider(height: 24),
+            _workRow("Task/Item", itemName, isBold: true),
+            const SizedBox(height: 8),
+            _workRow("Quantity Done", "$quantity Pcs"),
+            const SizedBox(height: 8),
+            _workRow("Rate per unit", perPiece.toStringAsFixed(2)),
+            const Divider(height: 32),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text("Total Earnings", style: TextStyle(fontWeight: FontWeight.w500)),
+                Text("PKR $amount", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.red)),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _workRow(String label, String value, {bool isBold = false}) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: const TextStyle(color: Colors.grey, fontSize: 13)),
+        Text(value, style: TextStyle(fontWeight: isBold ? FontWeight.bold : FontWeight.w500, fontSize: 14)),
+      ],
+    );
+  }
+
+  void _showAddSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+          ),
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom + 32,
+            top: 24,
+            left: 24,
+            right: 24,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2)))),
+                const SizedBox(height: 24),
+                const Text("Add Labour Record", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 24),
+                TextField(
+                  controller: _dateController,
+                  readOnly: true,
+                  decoration: const InputDecoration(labelText: "Date", prefixIcon: Icon(Icons.calendar_today_outlined)),
+                  onTap: () async {
+                    DateTime? picked = await showDatePicker(
+                      context: context,
+                      initialDate: DateTime.now(),
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime(2100),
+                    );
+                    if (picked != null) {
+                      setState(() => _dateController.text = "${picked.day}/${picked.month}/${picked.year}");
+                    }
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _itemController,
+                  decoration: const InputDecoration(labelText: "Work Description / Item", prefixIcon: Icon(Icons.work_outline)),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _quantityController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(labelText: "Quantity", prefixIcon: Icon(Icons.tag_rounded)),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: TextField(
+                        controller: _amountController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(labelText: "Bill Amount", prefixIcon: Icon(Icons.payments_outlined)),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 32),
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton(
+                    onPressed: () {
+                       final qty = int.tryParse(_quantityController.text) ?? 0;
+                       final amt = int.tryParse(_amountController.text) ?? 0;
+                       if (_dateController.text.isEmpty || _itemController.text.isEmpty || qty == 0) {
+                         _showSnack("Please fill all fields.");
+                         return;
+                       }
+                       _addLabourDetail(widget.personName, _dateController.text, qty, _itemController.text, amt, context);
+                    },
+                    child: _isLoading 
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text("Save Work Record", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _addLabourDetail(String person, String date, int quantity, String item, int amount, BuildContext context) async {
+    setState(() => _isLoading = true);
+    try {
+      await FirebaseFirestore.instance
+          .collection("Labour Person")
+          .doc(widget.personName)
+          .collection("Ledger")
+          .add({
+            "date": date,
+            "quantity": quantity,
+            "item": item,
+            "amount": amount,
+            "createdAt": FieldValue.serverTimestamp(),
+          });
+
+      await FirebaseFirestore.instance
+          .collection("Extras")
+          .doc(widget.category)
+          .update({
+            "Total Amount": FieldValue.increment(amount),
+            "Total Pieces": FieldValue.increment(quantity),
+          });
+
+      if (mounted) Navigator.pop(context);
+      _showSnack("Record saved!");
+    } catch (e) {
+      _showSnack("Error: $e");
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  void _showDeleteDialog(String recordId, int qty, int amt) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Delete Record?"),
+        content: const Text("This work record will be removed and category totals will be adjusted."),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _deleteRecord(recordId, qty, amt);
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+            child: const Text("Delete"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _deleteRecord(String recordId, int qty, int amt) async {
+    try {
+      await FirebaseFirestore.instance
+          .collection("Labour Person")
+          .doc(widget.personName)
+          .collection("Ledger")
+          .doc(recordId)
+          .delete();
+
+      await FirebaseFirestore.instance
+          .collection("Extras")
+          .doc(widget.category)
+          .update({
+            "Total Amount": FieldValue.increment(-amt),
+            "Total Pieces": FieldValue.increment(-qty),
+          });
+
+      _showSnack("Record deleted successfully");
+    } catch (e) {
+      _showSnack("Error: $e");
+    }
+  }
+
+  void _showSnack(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 }

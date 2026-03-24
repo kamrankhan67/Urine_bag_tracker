@@ -313,301 +313,239 @@ class InventoryDetail extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final data = item.data() as Map<String, dynamic>? ?? {};
 
-    Color getRowColor(String? color) {
+    Color getStatusColor(String? color) {
       switch (color) {
         case "Green":
-          return Colors.green;
+          return const Color(0xFF43A047);
         case "Red":
-          return Colors.red;
+          return const Color(0xFFE53935);
         default:
-          return Colors.grey;
+          return Colors.grey[600]!;
       }
     }
 
     return Scaffold(
-      backgroundColor: const Color.fromRGBO(232, 226, 219, 1),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          child: Column(
-            children: [
-              /// 🔹 HEADER
-              Container(
-                height: 70,
-                padding: const EdgeInsets.only(left: 20),
-                width: MediaQuery.of(context).size.width,
-                decoration: const BoxDecoration(
-                  color: Color.fromRGBO(26, 50, 99, 1),
-                  borderRadius: BorderRadius.only(
-                    bottomLeft: Radius.circular(10),
-                    bottomRight: Radius.circular(10),
+      appBar: AppBar(
+        title: Text(item.id),
+      ),
+      body: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 16),
+            
+            /// 🔹 KEY METRICS
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _metricCard(
+                      label: "Total Qty",
+                      value: data['total quantity']?.toString() ?? "0",
+                      icon: Icons.unarchive_outlined,
+                      color: theme.colorScheme.primary,
+                      theme: theme,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _metricCard(
+                      label: "Total Value",
+                      value: "Rs ${data['total value']?.toString() ?? "0"}",
+                      icon: Icons.payments_outlined,
+                      color: theme.colorScheme.secondary,
+                      theme: theme,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            /// 🔹 CURRENT STOCK CARD
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary,
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: theme.colorScheme.primary.withOpacity(0.3),
+                      blurRadius: 15,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                  gradient: LinearGradient(
+                    colors: [theme.colorScheme.primary, theme.colorScheme.secondary],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(
-                        Icons.arrow_back_rounded,
-                        color: Colors.white,
-                      ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Current Stock",
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.8),
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          data["quantity"]?.toString() ?? "0",
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
                     ),
-                    Text(
-                      item.id,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 23,
-                      ),
+                    Icon(
+                      Icons.inventory_rounded,
+                      color: Colors.white.withOpacity(0.2),
+                      size: 64,
                     ),
-                    SizedBox(width: MediaQuery.of(context).size.width / 6),
                   ],
                 ),
               ),
+            ),
 
-              const SizedBox(height: 20),
+            const SizedBox(height: 32),
 
-              /// 🔹 TOTAL QTY & VALUE
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
+            /// 🔹 LEDGER SECTION
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
                 children: [
-                  _inventoryDetailContainer(
-                    "Total Qty",
-                    data['total quantity']?.toString() ?? "0",
-                    const Color.fromRGBO(26, 50, 99, 1),
-                    context,
-                  ),
-                  _inventoryDetailContainer(
-                    "Total Value",
-                    data['total value']?.toString() ?? "0",
-                    const Color.fromRGBO(84, 119, 146, 1),
-                    context,
-                  ),
+                  Text("Inventory Ledger", style: theme.textTheme.titleLarge),
+                  const Spacer(),
+                  Icon(Icons.history_rounded, color: theme.colorScheme.primary),
                 ],
               ),
+            ),
+            const SizedBox(height: 16),
 
-              const SizedBox(height: 10),
+            StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection("Inventory")
+                  .doc(item.id)
+                  .collection("Ledger")
+                  .orderBy("Timestamp", descending: true)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator()));
+                }
 
-              /// 🔹 CURRENT STOCK
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 30),
-                margin: const EdgeInsets.only(
-                    top: 10, right: 20, left: 20),
-                width: double.infinity,
-                height: 70,
-                decoration: BoxDecoration(
-                  color: Colors.black,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Row(
-                  children: [
-                    const Text(
-                      'Stock',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 22,
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(40),
+                      child: Column(
+                        children: [
+                          Icon(Icons.notes_rounded, size: 48, color: Colors.grey[300]),
+                          const SizedBox(height: 12),
+                          const Text("No transactions recorded", style: TextStyle(color: Colors.grey)),
+                        ],
                       ),
                     ),
-                    const Spacer(),
-                    Text(
-                      data["quantity"]?.toString() ?? "0",
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 22,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
-              /// 🔹 LEDGER HEADER
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  color: Colors.grey,
-                  child: const Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          "Date",
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                      Expanded(
-                        child: Text(
-                          "Quantity",
-                          textAlign: TextAlign.center,
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                      Expanded(
-                        child: Text(
-                          "Description",
-                          textAlign: TextAlign.end,
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              /// 🔹 LEDGER LIST
-              StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance
-                    .collection("Inventory")
-                    .doc(item.id)
-                    .collection("Ledger")
-                    .orderBy("Date", descending: true)
-                    .snapshots(),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState ==
-                      ConnectionState.waiting) {
-                    return const Padding(
-                      padding: EdgeInsets.all(20),
-                      child: CircularProgressIndicator(
-                        color: Colors.lightBlue,
-                      ),
-                    );
-                  }
-
-                  if (snapshot.hasError) {
-                    return const Padding(
-                      padding: EdgeInsets.all(20),
-                      child: Text("Error loading records"),
-                    );
-                  }
-
-                  if (!snapshot.hasData ||
-                      snapshot.data!.docs.isEmpty) {
-                    return const Padding(
-                      padding: EdgeInsets.all(20),
-                      child: Text("No Record found"),
-                    );
-                  }
-
-                  return ListView.builder(
-                    physics: const NeverScrollableScrollPhysics(),
-                    shrinkWrap: true,
-                    itemCount: snapshot.data!.docs.length,
-                    itemBuilder: (context, index) {
-                      final ds = snapshot.data!.docs[index];
-                      final ledger =
-                          ds.data() as Map<String, dynamic>? ?? {};
-
-                      final rowColor =
-                          getRowColor(ledger["Color"]);
-
-                      String formattedDate = "";
-                      if (ledger["Date"] is Timestamp) {
-                        final date =
-                            (ledger["Date"] as Timestamp)
-                                .toDate();
-                        formattedDate =
-                            "${date.day}/${date.month}/${date.year}";
-                      } else {
-                        formattedDate =
-                            ledger["Date"]?.toString() ?? "";
-                      }
-
-                      return Container(
-                        margin: const EdgeInsets.symmetric(
-                            horizontal: 20, vertical: 1),
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: rowColor,
-                          borderRadius:
-                              BorderRadius.circular(6),
-                        ),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                formattedDate,
-                                style: const TextStyle(
-                                    color: Colors.white),
-                              ),
-                            ),
-                            Expanded(
-                              child: Text(
-                                ledger["Quantity"]
-                                        ?.toString() ??
-                                    "",
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight:
-                                      FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                            Expanded(
-                              child: Text(
-                                ledger["Description"]
-                                        ?.toString() ??
-                                    "",
-                                textAlign: TextAlign.end,
-                                overflow:
-                                    TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                    color: Colors.white),
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
                   );
-                },
-              ),
-            ],
-          ),
+                }
+
+                return ListView.builder(
+                  physics: const NeverScrollableScrollPhysics(),
+                  shrinkWrap: true,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: snapshot.data!.docs.length,
+                  itemBuilder: (context, index) {
+                    final ds = snapshot.data!.docs[index];
+                    final ledger = ds.data() as Map<String, dynamic>? ?? {};
+                    final statusColor = getStatusColor(ledger["Color"]);
+
+                    return Card(
+                      elevation: 0,
+                      margin: const EdgeInsets.only(bottom: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        side: BorderSide(color: Colors.grey[200]!),
+                      ),
+                      child: ListTile(
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        leading: Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: statusColor.withOpacity(0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            ledger["Color"] == "Red" ? Icons.remove_circle_outline : Icons.add_circle_outline,
+                            color: statusColor,
+                          ),
+                        ),
+                        title: Text(
+                          ledger["Description"]?.toString() ?? "Transaction",
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        subtitle: Text(ledger["Date"]?.toString() ?? ""),
+                        trailing: Text(
+                          "${ledger["Quantity"] > 0 ? '+' : ''}${ledger["Quantity"]}",
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: statusColor,
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+            const SizedBox(height: 24),
+          ],
         ),
       ),
     );
   }
 
-  Widget _inventoryDetailContainer(
-    String text,
-    String value,
-    Color color,
-    BuildContext context,
-  ) {
+  Widget _metricCard({
+    required String label,
+    required String value,
+    required IconData icon,
+    required Color color,
+    required ThemeData theme,
+  }) {
     return Container(
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(15),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withOpacity(0.1)),
       ),
-      width: MediaQuery.of(context).size.width / 2.3,
-      padding: const EdgeInsets.all(20),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            text,
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-              color: Colors.white,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-          ),
+          Icon(icon, color: color, size: 20),
+          const SizedBox(height: 12),
+          Text(label, style: const TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.w500)),
+          const SizedBox(height: 4),
+          Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
         ],
       ),
     );

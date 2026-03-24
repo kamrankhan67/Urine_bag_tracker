@@ -1,213 +1,5 @@
-// import 'package:cloud_firestore/cloud_firestore.dart';
-// import 'package:flutter/material.dart';
-// import 'package:urine_bag/commons/addButton.dart';
-// import 'package:urine_bag/pages/packager/PackagerDetail.dart';
-
-// class Packager extends StatefulWidget {
-//   const Packager({super.key});
-
-//   @override
-//   State<Packager> createState() => _PackagerState();
-// }
-
-// class _PackagerState extends State<Packager> {
-//   TextEditingController _nameController = TextEditingController();
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       backgroundColor: const Color.fromRGBO(232, 226, 219, 1),
-//       body: SafeArea(
-//         child: Column(
-//           children: [
-//             Container(
-//               height: 70,
-//               padding: EdgeInsets.only(left: 20, top: 10, bottom: 10),
-//               width: MediaQuery.of(context).size.width,
-//               decoration: BoxDecoration(
-//                 color: Color.fromRGBO(26, 50, 99, 1),
-//                 borderRadius: BorderRadius.only(
-//                   bottomLeft: Radius.circular(10),
-//                   bottomRight: Radius.circular(10),
-//                 ),
-//               ),
-//               child: Center(
-//                 child: Row(
-//                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-//                   children: [
-//                     IconButton(
-//                       onPressed: () {
-//                         Navigator.pop(context);
-//                       },
-//                       icon: Icon(Icons.arrow_back_rounded, color: Colors.white),
-//                     ),
-
-//                     Text(
-//                       'Packaging',
-//                       style: TextStyle(
-//                         color: Colors.white,
-//                         fontWeight: FontWeight.bold,
-//                         fontSize: 23,
-//                       ),
-//                     ),
-//                     SizedBox(width: MediaQuery.of(context).size.width / 6),
-//                   ],
-//                 ),
-//               ),
-//             ),
-
-//             StreamBuilder<QuerySnapshot>(
-//               stream: FirebaseFirestore.instance
-//                   .collection("Packaging")
-//                   .snapshots(),
-//               builder: (context, snapshot) {
-//                 if (snapshot.connectionState == ConnectionState.waiting) {
-//                   return const Center(
-//                     child: CircularProgressIndicator(color: Colors.lightBlue),
-//                   );
-//                 }
-//                 if (snapshot.hasError) {
-//                   return const Center(child: Text("Error loading records"));
-//                 }
-//                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-//                   return const Center(child: Text("No Record found"));
-//                 }
-
-//                 return ListView.builder(
-//                   physics: const NeverScrollableScrollPhysics(),
-//                   shrinkWrap: true,
-//                   itemCount: snapshot.data!.docs.length,
-//                   itemBuilder: (context, index) {
-//                     final ds = snapshot.data!.docs[index];
-
-//                     return Padding(
-//                       padding: EdgeInsetsGeometry.symmetric(
-//                         horizontal: 20,
-//                         vertical: 10,
-//                       ),
-//                       child: _PackagingContainer(context, ds.id, () {
-//                         Navigator.push(
-//                           context,
-//                           MaterialPageRoute(
-//                             builder: (context) =>
-//                                 PackagerDetail(packagerData: ds),
-//                           ),
-//                         );
-//                       }),
-//                     );
-//                   },
-//                 );
-//               },
-//             ),
-//           ],
-//         ),
-//       ),
-//       floatingActionButton: FloatingActionButton(
-//         backgroundColor: Colors.black,
-//         foregroundColor: Colors.white,
-//         onPressed: () {
-//           showModalBottomSheet(
-//             context: context,
-//             isScrollControlled: true,
-//             shape: const RoundedRectangleBorder(
-//               borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-//             ),
-//             builder: (context) {
-//               return Padding(
-//                 padding: EdgeInsets.only(
-//                   bottom: MediaQuery.of(context).viewInsets.bottom,
-//                 ),
-//                 child: Container(
-//                   padding: const EdgeInsets.all(16),
-//                   margin: EdgeInsets.symmetric(horizontal: 20),
-//                   height: MediaQuery.of(context).size.height * 0.4,
-//                   child: Column(
-//                     crossAxisAlignment: CrossAxisAlignment.center,
-//                     children: [
-//                       Center(
-//                         child: Container(
-//                           width: 40,
-//                           height: 5,
-//                           margin: const EdgeInsets.only(bottom: 16),
-//                           decoration: BoxDecoration(
-//                             color: Colors.grey[400],
-//                             borderRadius: BorderRadius.circular(10),
-//                           ),
-//                         ),
-//                       ),
-
-//                       const Text(
-//                         "Add Packager",
-//                         style: TextStyle(
-//                           fontSize: 18,
-//                           fontWeight: FontWeight.bold,
-//                         ),
-//                       ),
-
-//                       const SizedBox(height: 16),
-
-//                       TextField(
-//                         controller: _nameController,
-//                         decoration: InputDecoration(
-//                           labelText: "Name",
-//                           border: OutlineInputBorder(),
-//                         ),
-//                       ),
-
-//                       const Spacer(),
-//                       AddButton(fn: () => _addpackager(_nameController.text)),
-//                     ],
-//                   ),
-//                 ),
-//               );
-//             },
-//           );
-//         },
-//         child: const Icon(Icons.add),
-//       ),
-//     );
-//   }
-
-//   Widget _PackagingContainer(
-//     BuildContext context,
-//     String text,
-//     VoidCallback onTap,
-//   ) {
-//     return GestureDetector(
-//       onTap: onTap,
-//       child: Container(
-//         decoration: BoxDecoration(
-//           color: const Color.fromRGBO(84, 119, 146, 1),
-//           borderRadius: BorderRadius.circular(20),
-//         ),
-//         height: 60,
-//         width: MediaQuery.of(context).size.width,
-//         child: Center(
-//           child: Text(
-//             text,
-//             style: TextStyle(
-//               color: Colors.white,
-//               fontWeight: FontWeight.bold,
-//               fontSize: 23,
-//             ),
-//           ),
-//         ),
-//       ),
-//     );
-//   }
-
-//   void _addpackager(String name) async {
-//     await FirebaseFirestore.instance.collection("Packaging").doc(name).set({
-//       "Received Carton":0,
-//       "Boxes":0,
-//       "Pieces":0,
-//       "Expected Carton":0,
-//     });
-//     Navigator.pop(context);
-//   }
-// }
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:urine_bag/commons/addButton.dart';
 import 'package:urine_bag/pages/packager/PackagerDetail.dart';
 
 class Packager extends StatefulWidget {
@@ -229,222 +21,286 @@ class _PackagerState extends State<Packager> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: const Color.fromRGBO(232, 226, 219, 1),
-      body: SafeArea(
-        child: Column(
-          children: [
-            /// 🔹 HEADER
-            _buildHeader(),
-
-            /// 🔹 LIST
-            Expanded(
-              child: StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance
-                    .collection("Packaging")
-                    .orderBy(FieldPath.documentId)
-                    .snapshots(),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState ==
-                      ConnectionState.waiting) {
-                    return const Center(
-                      child: CircularProgressIndicator(
-                        color: Colors.lightBlue,
-                      ),
-                    );
-                  }
-
-                  if (snapshot.hasError) {
-                    return const Center(
-                        child: Text("Error loading records"));
-                  }
-
-                  if (!snapshot.hasData ||
-                      snapshot.data!.docs.isEmpty) {
-                    return const Center(
-                        child: Text("No Record found"));
-                  }
-
-                  return ListView.builder(
-                    itemCount: snapshot.data!.docs.length,
-                    itemBuilder: (context, index) {
-                      final ds = snapshot.data!.docs[index];
-
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 10,
-                        ),
-                        child: _packagingContainer(
-                          context,
-                          ds.id,
-                          () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => PackagerDetail(
-                                  packagerData: ds,
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      );
-                    },
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
-
-      /// 🔹 ADD BUTTON
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
+      appBar: AppBar(title: const Text('Packaging Partners')),
+      floatingActionButton: FloatingActionButton.extended(
         onPressed: _showAddSheet,
-        child: const Icon(Icons.add),
+        label: const Text("Add Partner"),
+        icon: const Icon(Icons.person_add_alt_1_outlined),
       ),
-    );
-  }
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection("Packaging")
+            .orderBy(FieldPath.documentId)
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-  /// 🔹 HEADER
-  Widget _buildHeader() {
-    return Container(
-      height: 70,
-      padding: const EdgeInsets.only(left: 20),
-      width: double.infinity,
-      decoration: const BoxDecoration(
-        color: Color.fromRGBO(26, 50, 99, 1),
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(10),
-          bottomRight: Radius.circular(10),
-        ),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          IconButton(
-            onPressed: () => Navigator.pop(context),
-            icon: const Icon(Icons.arrow_back_rounded,
-                color: Colors.white),
-          ),
-          const Text(
-            'Packaging',
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 23,
+          if (snapshot.hasError) {
+            return const Center(child: Text("Error loading records"));
+          }
+
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.inventory_2_outlined,
+                    size: 64,
+                    color: Colors.grey[300],
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    "No packaging partners found",
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          return GridView.builder(
+            padding: const EdgeInsets.all(16),
+            physics: const BouncingScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 16,
+              childAspectRatio: 1.1,
             ),
-          ),
-          const SizedBox(width: 50),
-        ],
+            itemCount: snapshot.data!.docs.length,
+            itemBuilder: (context, index) {
+              final ds = snapshot.data!.docs[index];
+              return _packagerCard(ds, context, theme);
+            },
+          );
+        },
       ),
     );
   }
 
-  /// 🔹 PACKAGER TILE
-  Widget _packagingContainer(
+  Widget _packagerCard(
+    DocumentSnapshot ds,
     BuildContext context,
-    String text,
-    VoidCallback onTap,
+    ThemeData theme,
   ) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          color: const Color.fromRGBO(84, 119, 146, 1),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        height: 60,
-        child: Center(
-          child: Text(
-            text,
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 23,
+    return Card(
+      elevation: 0,
+      margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(24),
+        side: BorderSide(color: theme.colorScheme.primary.withOpacity(0.05)),
+      ),
+      child: InkWell(
+        onLongPress: () => _showDeleteDialog(ds.id),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => PackagerDetail(packagerData: ds)),
+          );
+        },
+        borderRadius: BorderRadius.circular(24),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(24),
+            gradient: LinearGradient(
+              colors: [
+                theme.colorScheme.primary.withOpacity(0.05),
+                Colors.white,
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.person_outline_rounded,
+                  color: theme.colorScheme.primary,
+                  size: 32,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                ds.id,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  /// 🔹 SHOW BOTTOM SHEET
   void _showAddSheet() {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius:
-            BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+      backgroundColor: Colors.transparent,
       builder: (context) {
-        return Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
           ),
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            margin:
-                const EdgeInsets.symmetric(horizontal: 20),
-            height:
-                MediaQuery.of(context).size.height * 0.4,
-            child: Column(
-              children: [
-                const Text(
-                  "Add Packager",
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom + 32,
+            top: 24,
+            left: 24,
+            right: 24,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2),
                   ),
                 ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: _nameController,
-                  decoration: const InputDecoration(
-                    labelText: "Name",
-                    border: OutlineInputBorder(),
-                  ),
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                "Add Partner",
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 24),
+              TextField(
+                controller: _nameController,
+                decoration: const InputDecoration(
+                  labelText: "Partner Name",
+                  prefixIcon: Icon(Icons.person_outline),
                 ),
-                const Spacer(),
-                _isLoading
-                    ? const CircularProgressIndicator()
-                    : AddButton(
-                        fn: () =>
-                            _addPackager(_nameController.text),
-                      ),
-              ],
-            ),
+                autofocus: true,
+              ),
+              const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: ElevatedButton(
+                  onPressed: () => _addPackager(_nameController.text),
+                  child: _isLoading
+                      ? const SizedBox(
+                          height: 24,
+                          width: 24,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Text(
+                          "Register Partner",
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                ),
+              ),
+            ],
           ),
         );
       },
     );
   }
 
-  /// 🔹 SECURE ADD METHOD
+  void _showDeleteDialog(String item) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text("Delete $item?"),
+        content: const Text(
+          "This will permanently remove this category and all its records. This action cannot be undone.",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _deleteCategory(item);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text("Delete"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _deleteCategory(String item) async {
+    try {
+      QuerySnapshot personDeliverData = await FirebaseFirestore.instance
+          .collection("Packaging")
+          .doc(item)
+          .collection("Deliver")
+          .get();
+
+      for (var deliverDoc in personDeliverData.docs) {
+        await deliverDoc.reference.delete();
+      }
+      QuerySnapshot personReceivedData = await FirebaseFirestore.instance
+          .collection("Packaging")
+          .doc(item)
+          .collection("Received")
+          .get();
+
+      for (var receivedDoc in personReceivedData.docs) {
+        await receivedDoc.reference.delete();
+      }
+
+
+      // 2) Delete Supplier Category doc
+      await FirebaseFirestore.instance
+          .collection("Packaging")
+          .doc(item)
+          .delete();
+
+      _showSnack("Category deleted successfully");
+    } catch (e) {
+      _showSnack("Error deleting category: $e");
+    }
+  }
+
   Future<void> _addPackager(String name) async {
     final trimmedName = name.trim();
-
     if (trimmedName.isEmpty) {
       _showSnack("Name cannot be empty");
       return;
     }
 
-    if (trimmedName.length < 3) {
-      _showSnack("Name too short");
-      return;
-    }
-
     setState(() => _isLoading = true);
-
     try {
       final docRef = FirebaseFirestore.instance
           .collection("Packaging")
           .doc(trimmedName);
-
       final doc = await docRef.get();
 
       if (doc.exists) {
@@ -462,19 +318,18 @@ class _PackagerState extends State<Packager> {
       });
 
       _nameController.clear();
-      Navigator.pop(context);
-      _showSnack("Packager added successfully");
+      if (mounted) Navigator.pop(context);
+      _showSnack("Partner added successfully");
     } catch (e) {
       _showSnack("Something went wrong");
     }
-
-    setState(() => _isLoading = false);
+    if (mounted) setState(() => _isLoading = false);
   }
 
   void _showSnack(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 }
-

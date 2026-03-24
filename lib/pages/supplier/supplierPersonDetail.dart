@@ -20,6 +20,7 @@ class _SupplierPersonDetailState extends State<SupplierPersonDetail> {
   final TextEditingController _itemController = TextEditingController();
   final TextEditingController _dateController = TextEditingController();
   final TextEditingController _quantityController = TextEditingController();
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -32,489 +33,388 @@ class _SupplierPersonDetailState extends State<SupplierPersonDetail> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
-        onPressed: () {
-          showModalBottomSheet(
-            context: context,
-            isScrollControlled: true,
-            shape: const RoundedRectangleBorder(
-              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-            ),
-            builder: (context) {
-              return Padding(
-                padding: EdgeInsets.only(
-                  bottom: MediaQuery.of(context).viewInsets.bottom,
-                ),
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  margin: EdgeInsets.symmetric(horizontal: 20),
-                  height: MediaQuery.of(context).size.height * 0.7,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Center(
-                        child: Container(
-                          width: 40,
-                          height: 5,
-                          margin: const EdgeInsets.only(bottom: 16),
-                          decoration: BoxDecoration(
-                            color: Colors.grey[400],
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                      ),
-                      const Text(
-                        "Add Supply",
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      // TextField(
-                      //   controller: _dateController,
-                      //   decoration: InputDecoration(
-                      //     labelText: "Date",
-                      //     border: OutlineInputBorder(),
-                      //   ),
-                      //   keyboardType: TextInputType.datetime,
-                      // ),
-                      TextField(
-                        controller: _dateController,
-                        readOnly: true,
-                        decoration: InputDecoration(
-                          labelText: "Date",
-                          border: OutlineInputBorder(),
-                        ),
-                        onTap: () async {
-                          DateTime? picked = await showDatePicker(
-                            context: context,
-                            initialDate: DateTime.now(),
-                            firstDate: DateTime(2020),
-                            lastDate: DateTime(2100),
-                          );
-
-                          if (picked != null) {
-                            _dateController.text =
-                                "${picked.day}/${picked.month}/${picked.year}";
-                          }
-                        },
-                      ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: _quantityController,
-                        decoration: InputDecoration(
-                          labelText: "Quantity",
-                          border: OutlineInputBorder(),
-                        ),
-                        keyboardType: TextInputType.number,
-                      ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: _itemController,
-                        decoration: InputDecoration(
-                          labelText: "Item",
-                          border: OutlineInputBorder(),
-                        ),
-                        keyboardType: TextInputType.text,
-                      ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: _balController,
-                        decoration: InputDecoration(
-                          labelText: "Balance",
-                          border: OutlineInputBorder(),
-                        ),
-                        keyboardType: TextInputType.number,
-                      ),
-                      const SizedBox(height: 12),
-                      const Spacer(),
-                      AddButton(
-                        fn: () {
-                          if (_dateController.text.isEmpty ||
-                              _quantityController.text.isEmpty ||
-                              _itemController.text.isEmpty ||
-                              _balController.text.isEmpty) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text("Please fill all fields"),
-                              ),
-                            );
-                            return;
-                          }
-
-                          final quantity = int.tryParse(
-                            _quantityController.text,
-                          );
-                          final balance = int.tryParse(_balController.text);
-
-                          if (quantity == null || balance == null) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text("Enter valid numbers"),
-                              ),
-                            );
-                            return;
-                          }
-
-                          _addSupplyDetail(
-                            widget.personName,
-                            _dateController.text,
-                            quantity,
-                            _itemController.text,
-                            balance,
-                            context,
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          );
-        },
-        child: const Icon(Icons.add),
+      appBar: AppBar(
+        title: Text(widget.personName),
       ),
-      backgroundColor: const Color.fromRGBO(232, 226, 219, 1),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              Container(
-                padding: EdgeInsets.only(left: 20, top: 10, bottom: 10),
-                width: MediaQuery.of(context).size.width,
-                decoration: BoxDecoration(
-                  color: Color.fromRGBO(26, 50, 99, 1),
-                  borderRadius: BorderRadius.only(
-                    bottomLeft: Radius.circular(10),
-                    bottomRight: Radius.circular(10),
-                  ),
-                ),
-                child: StreamBuilder<DocumentSnapshot>(
-                  stream: FirebaseFirestore.instance
-                      .collection("SuplierDetail")
-                      .doc(widget.personName)
-                      .snapshots(),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
-                    } else if (snapshot.hasError) {
-                      return const Center(
-                        child: Text("Error loading supplier info"),
-                      );
-                    } else if (!snapshot.hasData || !snapshot.data!.exists) {
-                      return const Center(child: Text("Supplier not found"));
-                    }
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _showAddSheet,
+        label: const Text("New Bill"),
+        icon: const Icon(Icons.add_shopping_cart_outlined),
+      ),
+      body: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            /// 👤 Header Info Section
+            _buildProfileSection(theme),
+            
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 24, 16, 8),
+              child: Text("Purchase History", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            ),
 
-                    var supplier = snapshot.data!;
-                    return Column(
-                      children: [
-                        Center(
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              IconButton(
-                                onPressed: () {
-                                  Navigator.pop(context);
-                                },
-                                icon: Icon(
-                                  Icons.arrow_back_rounded,
-                                  color: Colors.white,
-                                ),
-                              ),
-                              Text(
-                                supplier.id,
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 23,
-                                ),
-                              ),
-                              SizedBox(
-                                width: MediaQuery.of(context).size.width / 6,
-                              ),
-                            ],
-                          ),
-                        ),
-                        Text(
-                          'Location : ${supplier['location']}',
-                          style: TextStyle(color: Colors.white),
-                        ),
-                        Text(
-                          'Phone No : ${supplier['phone']}',
-                          style: TextStyle(color: Colors.white),
-                        ),
-                      ],
-                    );
+            StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection("SuplierDetail")
+                  .doc(widget.personName)
+                  .collection("Bills")
+                  .orderBy('createdAt', descending: true)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Padding(
+                    padding: EdgeInsets.all(32),
+                    child: Center(child: CircularProgressIndicator()),
+                  );
+                }
+                if (snapshot.hasError) {
+                  return const Center(child: Text("Error loading bills"));
+                }
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return const Padding(
+                    padding: EdgeInsets.all(40.0),
+                    child: Center(
+                      child: Column(
+                        children: [
+                          Icon(Icons.history_outlined, size: 48, color: Colors.grey),
+                          SizedBox(height: 8),
+                          Text("No purchase records found", style: TextStyle(color: Colors.grey)),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+
+                return ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: snapshot.data!.docs.length,
+                  itemBuilder: (context, index) {
+                    final ds = snapshot.data!.docs[index];
+                    return _billCard(ds, theme);
                   },
-                ),
-              ),
-              StreamBuilder(
-                stream: FirebaseFirestore.instance
-                    .collection("SuplierDetail")
-                    .doc(widget.personName)
-                    .collection("Bills")
-                    .snapshots(),
-                builder:
-                    (
-                      BuildContext context,
-                      AsyncSnapshot<QuerySnapshot> snapshot,
-                    ) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(
-                          child: CircularProgressIndicator(
-                            color: Colors.blueAccent,
-                          ),
-                        );
-                      } else if (snapshot.hasError) {
-                        return const Center(
-                          child: Text("Error loading Supplier Detail"),
-                        );
-                      } else if (!snapshot.hasData ||
-                          snapshot.data!.docs.isEmpty) {
-                        return const Center(child: Text("No Purchase found"));
-                      }
-                      return ListView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: snapshot.data!.docs.length,
-                        itemBuilder: (context, index) {
-                          DocumentSnapshot ds = snapshot.data!.docs[index];
-                          return GestureDetector(
-                            onLongPress: () {
-                              _showEditDeleteDialog(ds.id);
-                            },
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              width: double.infinity,
-                              margin: EdgeInsets.symmetric(
-                                horizontal: 20,
-                                vertical: 10,
-                              ),
-                              padding: EdgeInsets.all(20),
-                              child: Column(
-                                children: [
-                                  Text(
-                                    'Date : ${ds['date']}',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  SizedBox(height: 10),
-                                  Row(
-                                    children: [
-                                      Text('Quantity '),
-                                      Spacer(),
-                                      Text(ds['quantity'].toString()),
-                                    ],
-                                  ),
-                                  Row(
-                                    children: [
-                                      Text('Item '),
-                                      Spacer(),
-                                      Text(ds['item']),
-                                    ],
-                                  ),
-                                  Row(
-                                    children: [
-                                      Text('Per Piece Price '),
-                                      Spacer(),
-                                      Text(
-                                        ds['quantity'] != 0
-                                            ? (ds['balance'] / ds['quantity'])
-                                                  .toStringAsFixed(2)
-                                            : "0",
-                                      ),
-                                    ],
-                                  ),
-                                  Text(
-                                    'Balance: ${ds['balance']}',
-                                    style: TextStyle(
-                                      color: Colors.red,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 17,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
-                      );
-                    },
-              ),
-            ],
-          ),
+                );
+              },
+            ),
+            const SizedBox(height: 100),
+          ],
         ),
       ),
     );
   }
 
-  
-
-  void _showEditDeleteDialog(String categoryId) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          titleTextStyle: TextStyle(color: Colors.white),
-          title: const Text("Do you want to change it?"),
-          backgroundColor: Colors.black,
-          content: GestureDetector(
-                      onTap: () => _deleteLabourCategory(categoryId),
-                      child: Container(
-          height: 45,
-          width: MediaQuery.of(context).size.width,
+  Widget _buildProfileSection(ThemeData theme) {
+    return StreamBuilder<DocumentSnapshot>(
+      stream: FirebaseFirestore.instance.collection("SuplierDetail").doc(widget.personName).snapshots(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData || !snapshot.data!.exists) return const SizedBox();
+        final data = snapshot.data!;
+        
+        return Container(
+          width: double.infinity,
+          margin: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: const Color.fromARGB(255, 255, 60, 1),
-            borderRadius: BorderRadius.circular(8),
+            color: theme.colorScheme.primary.withOpacity(0.05),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: theme.colorScheme.primary.withOpacity(0.1)),
           ),
-          child: const Center(
-            child: Text(
-              "Delete",
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 15,
-                fontWeight: FontWeight.bold,
+          child: Column(
+            children: [
+              Row(
+                children: [
+                   Container(
+                     padding: const EdgeInsets.all(12),
+                     decoration: BoxDecoration(color: theme.colorScheme.primary.withOpacity(0.1), shape: BoxShape.circle),
+                     child: Icon(Icons.business_rounded, color: theme.colorScheme.primary),
+                   ),
+                   const SizedBox(width: 16),
+                   Expanded(
+                     child: Column(
+                       crossAxisAlignment: CrossAxisAlignment.start,
+                       children: [
+                         Text(widget.supplyItem, style: TextStyle(color: theme.colorScheme.primary, fontWeight: FontWeight.bold, fontSize: 13)),
+                         Text(widget.personName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
+                       ],
+                     ),
+                   ),
+                ],
               ),
-            ),
+              const Divider(height: 32),
+              Row(
+                children: [
+                  _infoBit(Icons.location_on_outlined, "Location", data['location'] ?? "N/A"),
+                  const Spacer(),
+                  _infoBit(Icons.phone_outlined, "Phone", data['phone'] ?? "N/A"),
+                ],
+              ),
+            ],
           ),
-                      ),
-                    )
         );
       },
     );
   }
 
-  
-void _addSupplyDetail(
-  String person,
-  String date,
-  int quantity,
-  String item,
-  int bal,
-  BuildContext context,
-) async {
-  String randomDocId = DateTime.now().millisecondsSinceEpoch.toString();
-  try {
-    // Adding to Bills collection
-    await FirebaseFirestore.instance
-        .collection("SuplierDetail")
-        .doc(widget.personName)
-        .collection("Bills")
-        .doc()
-        .set({
-      "date": date,
-      "quantity": quantity,
-      "item": item,
-      "balance": bal,
-      "ledgerDocId": randomDocId, // Ensure this is saved when adding the bill
-      "createdAt": FieldValue.serverTimestamp(),
-    });
-
-    // Adding to Inventory Ledger
-    await FirebaseFirestore.instance
-        .collection("Inventory")
-        .doc(widget.supplyItem)
-        .collection("Ledger")
-        .doc(randomDocId)
-        .set({
-      "Date": date,
-      "Quantity": "+$quantity",
-      "Color": "Green",
-      "Description": person,
-      "createdAt": FieldValue.serverTimestamp(),
-    });
-
-    // Updating Inventory totals
-    await FirebaseFirestore.instance
-        .collection("Inventory")
-        .doc(widget.supplyItem)
-        .update({
-      "quantity": FieldValue.increment(quantity),
-      "total quantity": FieldValue.increment(quantity),
-      "total value": FieldValue.increment(bal),
-    });
-
-    // Close the bottom sheet after successfully adding the supply detail
-    Navigator.pop(context);
-  } catch (e) {
-    Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Error: ${e.toString()}")),
+  Widget _infoBit(IconData icon, String label, String value) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: Colors.grey),
+        const SizedBox(width: 8),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey)),
+            Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+          ],
+        ),
+      ],
     );
   }
-}
 
-Future<void> _deleteLabourCategory(String categoryId) async {
-  try {
-    // Get the document from the "Bills" collection
-    DocumentSnapshot ds = await FirebaseFirestore.instance
-        .collection("SuplierDetail")
-        .doc(widget.personName)
-        .collection("Bills")
-        .doc(categoryId)
-        .get();
+  Widget _billCard(DocumentSnapshot ds, ThemeData theme) {
+    final data = ds.data() as Map<String, dynamic>;
+    final date = data['date'] ?? "";
+    final quantity = data['quantity'] ?? 0;
+    final itemName = data['item'] ?? "";
+    final balance = data['balance'] ?? 0;
+    final perPiece = quantity != 0 ? (balance / quantity) : 0.0;
 
-    if (!ds.exists) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Bill not found")),
-      );
-      return;
-    }
-
-    // Check if the ledgerDocId field exists in the document
-    var ledgerDocId = ds["ledgerDocId"];
-    if (ledgerDocId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Ledger document ID not found")),
-      );
-      return;
-    }
-
-    // Now, proceed to delete from the "Bills" collection
-    await FirebaseFirestore.instance
-        .collection("SuplierDetail")
-        .doc(widget.personName)
-        .collection("Bills")
-        .doc(categoryId)
-        .delete();
-
-    // Delete from the Inventory Ledger subcollection
-    await FirebaseFirestore.instance
-        .collection("Inventory")
-        .doc(widget.supplyItem)
-        .collection("Ledger")
-        .doc(ledgerDocId)
-        .delete();
-
-    // Update the Inventory totals (decrease the quantities)
-    await FirebaseFirestore.instance
-        .collection("Inventory")
-        .doc(widget.supplyItem)
-        .update({
-      "quantity": FieldValue.increment(-ds["quantity"]),
-      "total quantity": FieldValue.increment(-ds["quantity"]),
-    });
-
-    // Show success message
-    Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Category deleted successfully")),
-    );
-  } catch (e) {
-    Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Error: ${e.toString()}")),
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(date, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+                IconButton(
+                  onPressed: () => _showDeleteDialog(ds.id),
+                  icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  visualDensity: VisualDensity.compact,
+                ),
+              ],
+            ),
+            const Divider(height: 24),
+            _billRow("Item", itemName, isBold: true),
+            const SizedBox(height: 8),
+            _billRow("Quantity", "$quantity"),
+            const SizedBox(height: 8),
+            _billRow("Per Unit Cost", perPiece.toStringAsFixed(2)),
+            const Divider(height: 32),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text("Total Balance", style: TextStyle(fontWeight: FontWeight.w500)),
+                Text("PKR $balance", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.red)),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
-}
 
+  Widget _billRow(String label, String value, {bool isBold = false}) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: const TextStyle(color: Colors.grey, fontSize: 13)),
+        Text(value, style: TextStyle(fontWeight: isBold ? FontWeight.bold : FontWeight.w500, fontSize: 14)),
+      ],
+    );
+  }
+
+  void _showAddSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+          ),
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom + 32,
+            top: 24,
+            left: 24,
+            right: 24,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2)))),
+                const SizedBox(height: 24),
+                const Text("New Supply Record", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 24),
+                TextField(
+                  controller: _dateController,
+                  readOnly: true,
+                  decoration: const InputDecoration(labelText: "Date", prefixIcon: Icon(Icons.calendar_today_outlined)),
+                  onTap: () async {
+                    DateTime? picked = await showDatePicker(
+                      context: context,
+                      initialDate: DateTime.now(),
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime(2100),
+                    );
+                    if (picked != null) {
+                      setState(() => _dateController.text = "${picked.day}/${picked.month}/${picked.year}");
+                    }
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _itemController,
+                  decoration: const InputDecoration(labelText: "Item Name", prefixIcon: Icon(Icons.shopping_bag_outlined)),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _quantityController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(labelText: "Quantity", prefixIcon: Icon(Icons.tag_rounded)),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: TextField(
+                        controller: _balController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(labelText: "Balance", prefixIcon: Icon(Icons.payments_outlined)),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 32),
+                AddButton(
+                  isLoading: _isLoading,
+                  text: "Save Invoice",
+                  fn: () {
+                    final qty = int.tryParse(_quantityController.text) ?? 0;
+                    final bal = int.tryParse(_balController.text) ?? 0;
+                    if (_dateController.text.isEmpty ||
+                        _itemController.text.isEmpty ||
+                        qty == 0) {
+                      _showSnack("Please fill all fields.");
+                      return;
+                    }
+                    _addSupplyDetail(widget.personName, _dateController.text, qty,
+                        _itemController.text, bal, context);
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _addSupplyDetail(String person, String date, int quantity, String item, int bal, BuildContext context) async {
+    String randomDocId = DateTime.now().millisecondsSinceEpoch.toString();
+    setState(() => _isLoading = true);
+    try {
+      await FirebaseFirestore.instance.collection("SuplierDetail").doc(widget.personName).collection("Bills").doc().set({
+        "date": date,
+        "quantity": quantity,
+        "item": item,
+        "balance": bal,
+        "ledgerDocId": randomDocId,
+        "createdAt": FieldValue.serverTimestamp(),
+      });
+
+      await FirebaseFirestore.instance.collection("Inventory").doc(widget.supplyItem).collection("Ledger").doc(randomDocId).set({
+        "Date": date,
+        "Quantity": quantity, // ✅ store as int
+        "Color": "Green",
+        "Description": person,
+        "Timestamp": FieldValue.serverTimestamp(), // ✅ rename to Timestamp
+      });
+
+      await FirebaseFirestore.instance.collection("Inventory").doc(widget.supplyItem).update({
+        "quantity": FieldValue.increment(quantity),
+        "total quantity": FieldValue.increment(quantity),
+        "total value": FieldValue.increment(bal),
+      });
+
+      if (mounted) Navigator.pop(context);
+      _showSnack("Invoice saved!");
+    } catch (e) {
+      _showSnack("Error: $e");
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  void _showDeleteDialog(String billId) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Delete Record?"),
+        content: const Text("This purchase will be removed and inventory totals will be adjusted back."),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _deleteBill(billId);
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+            child: const Text("Delete"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _deleteBill(String billId) async {
+    try {
+      DocumentSnapshot ds = await FirebaseFirestore.instance
+          .collection("SuplierDetail")
+          .doc(widget.personName)
+          .collection("Bills")
+          .doc(billId)
+          .get();
+
+      if (!ds.exists) return;
+
+      var ledgerDocId = ds["ledgerDocId"];
+      int qty = ds["quantity"] ?? 0;
+      int bal = ds["balance"] ?? 0;
+
+      await FirebaseFirestore.instance.collection("SuplierDetail").doc(widget.personName).collection("Bills").doc(billId).delete();
+
+      if (ledgerDocId != null) {
+        await FirebaseFirestore.instance.collection("Inventory").doc(widget.supplyItem).collection("Ledger").doc(ledgerDocId).delete();
+      }
+
+      await FirebaseFirestore.instance.collection("Inventory").doc(widget.supplyItem).update({
+        "quantity": FieldValue.increment(-qty),
+        "total quantity": FieldValue.increment(-qty),
+        "total value": FieldValue.increment(-bal),
+      });
+
+      _showSnack("Record deleted successfully");
+    } catch (e) {
+      _showSnack("Error deleting record: $e");
+    }
+  }
+
+  void _showSnack(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  }
 }

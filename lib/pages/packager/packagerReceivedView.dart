@@ -13,360 +13,161 @@ class PackagerRecievedView extends StatefulWidget {
 class _PackagerRecievedViewState extends State<PackagerRecievedView> {
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: const Color.fromRGBO(232, 226, 219, 1),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              Container(
-                height: 70,
-                padding: EdgeInsets.only(left: 20, top: 10, bottom: 10),
-                width: MediaQuery.of(context).size.width,
-                decoration: BoxDecoration(
-                  color: Color.fromRGBO(26, 50, 99, 1),
-                  borderRadius: BorderRadius.only(
-                    bottomLeft: Radius.circular(10),
-                    bottomRight: Radius.circular(10),
-                  ),
-                ),
-                child: Center(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      IconButton(
-                        onPressed: () {
-                          Navigator.pop(context);
-                        },
-                        icon: Icon(
-                          Icons.arrow_back_rounded,
-                          color: Colors.white,
-                        ),
-                      ),
-                      Text(
-                        'Received Detail',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 23,
-                        ),
-                      ),
-                      SizedBox(width: MediaQuery.of(context).size.width / 6),
-                    ],
-                  ),
-                ),
-              ),
-              StreamBuilder(
-                stream: FirebaseFirestore.instance
-                    .collection("Packaging")
-                    .doc(
-                      widget.packagerName,
-                    ) // Ensure this is properly initialized
-                    .collection("Received")
-                    .snapshots(),
-                builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(
-                      child: CircularProgressIndicator(color: Colors.lightBlue),
-                    );
-                  } else if (snapshot.hasError) {
-                    return const Center(child: Text("Error loading Suppliers"));
-                  } else if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                    return const Center(child: Text("No Supplier found"));
-                  }
-                  return ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: snapshot.data!.docs.length,
-                    itemBuilder: (context, index) {
-                      DocumentSnapshot ds = snapshot.data!.docs[index];
-                      return Column(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            margin: const EdgeInsets.symmetric(
-                              horizontal: 20,
-                              vertical: 10,
-                            ),
-                            width: MediaQuery.of(context).size.width,
-                            decoration: BoxDecoration(
-                              color: const Color.fromARGB(255, 11, 20, 52),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Column(
-                              children: [
-                                Center(
-                                  child: Text(
-                                    'Date : ${ds["Date"] ?? 0}',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 17,
-                                    ),
-                                  ),
-                                ),
-                                SizedBox(height: 15),
+      appBar: AppBar(title: const Text('Receipt History')),
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection("Packaging")
+            .doc(widget.packagerName)
+            .collection("Received")
+            .orderBy(
+              'Date',
+              descending: true,
+            ) // Assuming Date is a string or timestamp
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return const Center(child: Text("Error loading receipt records"));
+          }
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return const Center(child: Text("No receipt history found"));
+          }
 
-                                GridView(
-                                  shrinkWrap: true,
-                                  physics: NeverScrollableScrollPhysics(),
-                                  gridDelegate:
-                                      SliverGridDelegateWithFixedCrossAxisCount(
-                                        crossAxisCount: 2,
-                                        childAspectRatio: 3.2,
-                                        mainAxisSpacing: 8,
-                                        crossAxisSpacing: 8,
-                                      ),
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: Colors.blueGrey.shade700,
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Center(
-                                        child: Text(
-                                          "Carton : ${ds["Received_carton"] ?? 0}",
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: Colors.blueGrey.shade700,
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Center(
-                                        child: Text(
-                                          "Boxes : ${ds["Received_box"] ?? 0}",
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: Colors.blueGrey.shade700,
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Center(
-                                        child: Text(
-                                          "Pieces : ${ds["Received_pieces"] ?? 0}",
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: Colors.blueGrey.shade700,
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Center(
-                                        child: Text(
-                                          "Status : ${ds["Status"] ?? 0}",
-                                          style: const TextStyle(
-                                            color: Color.fromARGB(
-                                              255,
-                                              239,
-                                              133,
-                                              133,
-                                            ),
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                SizedBox(height: 20),
-                                GestureDetector(
-                                  onTap: () {
-                                    _editReceived(context, ds.id);
-                                  },
-                                  child: Container(
-                                    height: 45,
-                                    decoration: BoxDecoration(
-                                      color: Colors.green,
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: const Center(
-                                      child: Text(
-                                        "Edit",
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      );
-                    },
-                  );
-                },
+          return ListView.builder(
+            padding: const EdgeInsets.all(16),
+            physics: const BouncingScrollPhysics(),
+            itemCount: snapshot.data!.docs.length,
+            itemBuilder: (context, index) {
+              final ds = snapshot.data!.docs[index];
+              return _receiptCard(ds, theme);
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _receiptCard(DocumentSnapshot ds, ThemeData theme) {
+    Map<String, dynamic> data = ds.data() as Map<String, dynamic>;
+    final date = data["Date"] ?? "No Date";
+    final cartons = data["Received_carton"] ?? 0;
+    final boxes = data["Received_box"] ?? 0;
+    final pieces = data["Received_pieces"] ?? 0;
+    final status = data["Status"] ?? "N/A";
+
+    final isPaid = status.toString().toLowerCase() == "paid";
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Received Date",
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: Colors.grey,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      date,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isPaid
+                        ? Colors.green.withOpacity(0.1)
+                        : Colors.orange.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    status,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: isPaid ? Colors.green : Colors.orange,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const Divider(height: 24),
+
+            Row(
+              children: [
+                _miniMetric(
+                  "Cartons",
+                  "$cartons",
+                  Icons.inventory_2_outlined,
+                  theme,
+                ),
+                _miniMetric("Boxes", "$boxes", Icons.grid_view_rounded, theme),
+                _miniMetric(
+                  "Pieces",
+                  "$pieces",
+                  Icons.category_outlined,
+                  theme,
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () => _editReceived(context, ds.id),
+                icon: const Icon(Icons.edit_outlined, size: 18),
+                label: const Text("Edit Record"),
+                style: OutlinedButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  // void _editReceived(BuildContext context, String id) async {
-  //   DocumentSnapshot ds = await FirebaseFirestore.instance
-  //       .collection("Packaging")
-  //       .doc(widget.packagerName)
-  //       .collection("Received")
-  //       .doc(id)
-  //       .get();
+  Widget _miniMetric(
+    String label,
+    String value,
+    IconData icon,
+    ThemeData theme,
+  ) {
+    return Expanded(
+      child: Column(
+        children: [
+          Icon(icon, size: 16, color: Colors.grey),
+          const SizedBox(height: 4),
+          Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
+          Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey)),
+        ],
+      ),
+    );
+  }
 
-  //   TextEditingController dateController = TextEditingController(
-  //     text: ds["Date"],
-  //   );
-  //   TextEditingController cartonController = TextEditingController(
-  //     text: ds["Received_carton"].toString(),
-  //   );
-  //   TextEditingController statusController = TextEditingController(
-  //     text: ds["Status"],
-  //   );
-  //   showModalBottomSheet(
-  //     context: context,
-  //     isScrollControlled: true,
-  //     shape: const RoundedRectangleBorder(
-  //       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-  //     ),
-  //     builder: (context) {
-  //       return SingleChildScrollView(
-  //         physics: BouncingScrollPhysics(),
-  //         child: Padding(
-  //           padding: EdgeInsets.only(
-  //             bottom: MediaQuery.of(context).viewInsets.bottom,
-  //           ),
-  //           child: Container(
-  //             padding: const EdgeInsets.all(16),
-  //             margin: EdgeInsets.symmetric(horizontal: 20),
-  //             height: MediaQuery.of(context).size.height * 0.65,
-  //             child: Column(
-  //               crossAxisAlignment: CrossAxisAlignment.center,
-  //               children: [
-  //                 Center(
-  //                   child: Container(
-  //                     width: 40,
-  //                     height: 5,
-  //                     margin: const EdgeInsets.only(bottom: 16),
-  //                     decoration: BoxDecoration(
-  //                       color: Colors.grey[400],
-  //                       borderRadius: BorderRadius.circular(10),
-  //                     ),
-  //                   ),
-  //                 ),
-  //                 const Text(
-  //                   "Edit Received",
-  //                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-  //                 ),
-  //                 const SizedBox(height: 16),
-  //                 TextField(
-  //                   controller: dateController,
-  //                   decoration: InputDecoration(
-  //                     labelText: "Date",
-
-  //                     border: OutlineInputBorder(),
-  //                   ),
-  //                   keyboardType: TextInputType.datetime,
-  //                 ),
-  //                 const SizedBox(height: 16),
-  //                 TextField(
-  //                   controller: cartonController,
-  //                   decoration: InputDecoration(
-  //                     labelText: "Cartons",
-  //                     border: OutlineInputBorder(),
-  //                   ),
-  //                   keyboardType: TextInputType.number,
-  //                 ),
-  //                 const SizedBox(height: 16),
-  //                 TextField(
-  //                   controller: statusController,
-  //                   decoration: InputDecoration(
-  //                     labelText: "Status",
-  //                     hintText: "Paid / UnPaid",
-  //                     border: OutlineInputBorder(),
-  //                   ),
-  //                   keyboardType: TextInputType.text,
-  //                 ),
-  //                 const SizedBox(height: 16),
-  //                 const Spacer(),
-  //                 AddButton(
-  //                   fn: () async {
-  //                     await FirebaseFirestore.instance
-  //                         .collection("Packaging")
-  //                         .doc(widget.packagerName)
-  //                         .collection("Received")
-  //                         .doc(id)
-  //                         .update({
-  //                           "Date": dateController.text,
-  //                           "Received_carton": int.parse(cartonController.text),
-  //                           "Received_box":
-  //                               int.parse(cartonController.text) * 48,
-  //                           "Received_pieces":
-  //                               int.parse(cartonController.text) * 144,
-  //                           "Status": statusController.text,
-  //                         });
-  //                     await FirebaseFirestore.instance
-  //                         .collection("Packaging")
-  //                         .doc(widget.packagerName)
-  //                         .update({
-  //                           "Received Carton": FieldValue.increment(
-  //                             int.parse(cartonController.text) -
-  //                                 ds["Received_carton"],
-  //                           ),
-  //                           "Boxes": FieldValue.increment(
-  //                             (int.parse(cartonController.text) * 48) -
-  //                                 ds["Received_box"],
-  //                           ),
-  //                           "Pieces": FieldValue.increment(
-  //                             (int.parse(cartonController.text) * 144) -
-  //                                 ds["Received_pieces"],
-  //                           ),
-  //                         })
-  //                         .then((value) => Navigator.pop(context));
-  //                   },
-  //                 ),
-  //               ],
-  //             ),
-  //           ),
-  //         ),
-  //       );
-  //     },
-  //   );
-  // }
   void _editReceived(BuildContext context, String id) async {
     DocumentSnapshot ds = await FirebaseFirestore.instance
         .collection("Packaging")
@@ -376,149 +177,184 @@ class _PackagerRecievedViewState extends State<PackagerRecievedView> {
         .get();
 
     if (!ds.exists) return;
-
-    final TextEditingController dateController = TextEditingController(
-      text: ds["Date"] ?? "",
-    );
-    final TextEditingController cartonController = TextEditingController(
-      text: ds["Received_carton"].toString(),
-    );
-    final TextEditingController statusController = TextEditingController(
-      text: ds["Status"] ?? "",
-    );
-
-    const int BOX_MULTIPLIER = 48;
-    const int PIECE_MULTIPLIER = 144;
+    if (!context.mounted) return;
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      backgroundColor: Colors.transparent,
+      builder: (context) =>
+          _EditReceivedModal(doc: ds, packagerName: widget.packagerName),
+    );
+  }
+}
+
+class _EditReceivedModal extends StatefulWidget {
+  final DocumentSnapshot doc;
+  final String packagerName;
+
+  const _EditReceivedModal({required this.doc, required this.packagerName});
+
+  @override
+  State<_EditReceivedModal> createState() => _EditReceivedModalState();
+}
+
+class _EditReceivedModalState extends State<_EditReceivedModal> {
+  late TextEditingController dateController;
+  late TextEditingController cartonController;
+  late TextEditingController statusController;
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final data = widget.doc.data() as Map<String, dynamic>? ?? {};
+    dateController = TextEditingController(text: data["Date"] ?? "");
+    cartonController = TextEditingController(
+      text: (data["Received_carton"] ?? 0).toString(),
+    );
+    statusController = TextEditingController(text: data["Status"] ?? "");
+  }
+
+  @override
+  void dispose() {
+    dateController.dispose();
+    cartonController.dispose();
+    statusController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const int BOX_MULTIPLIER = 48;
+    const int PIECE_MULTIPLIER = 144;
+
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
       ),
-      builder: (context) {
-        return SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          child: Padding(
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.of(context).viewInsets.bottom,
-            ),
-            child: StatefulBuilder(
-              builder: (context, setModalState) {
-                bool isLoading = false;
-                return Container(
-                  padding: const EdgeInsets.all(16),
-                  margin: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const SizedBox(height: 10),
-                      const Text(
-                        "Edit Received",
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      TextField(
-                        controller: dateController,
-                        decoration: const InputDecoration(
-                          labelText: "Date",
-                          border: OutlineInputBorder(),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      TextField(
-                        controller: cartonController,
-                        decoration: const InputDecoration(
-                          labelText: "Cartons",
-                          border: OutlineInputBorder(),
-                        ),
-                        keyboardType: TextInputType.number,
-                      ),
-                      const SizedBox(height: 16),
-                      TextField(
-                        controller: statusController,
-                        decoration: const InputDecoration(
-                          labelText: "Status",
-                          hintText: "Paid / UnPaid",
-                          border: OutlineInputBorder(),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      isLoading
-                          ? const CircularProgressIndicator()
-                          : AddButton(
-                              fn: () async {
-                                setModalState(() => isLoading = true);
-
-                                try {
-                                  int newCartons =
-                                      int.tryParse(cartonController.text) ?? 0;
-                                  int oldCartons = ds["Received_carton"] ?? 0;
-                                  int newBoxes = newCartons * BOX_MULTIPLIER;
-                                  int oldBoxes = ds["Received_box"] ?? 0;
-                                  int newPieces = newCartons * PIECE_MULTIPLIER;
-                                  int oldPieces = ds["Received_pieces"] ?? 0;
-
-                                  // Update subcollection document
-                                  await FirebaseFirestore.instance
-                                      .collection("Packaging")
-                                      .doc(widget.packagerName)
-                                      .collection("Received")
-                                      .doc(id)
-                                      .update({
-                                        "Date": dateController.text,
-                                        "Received_carton": newCartons,
-                                        "Received_box": newBoxes,
-                                        "Received_pieces": newPieces,
-                                        "Status": statusController.text,
-                                      });
-
-                                  // Update parent document safely
-                                  await FirebaseFirestore.instance
-                                      .collection("Packaging")
-                                      .doc(widget.packagerName)
-                                      .update({
-                                        "Received Carton": FieldValue.increment(
-                                          newCartons - oldCartons,
-                                        ),
-                                        "Boxes": FieldValue.increment(
-                                          newBoxes - oldBoxes,
-                                        ),
-                                        "Pieces": FieldValue.increment(
-                                          newPieces - oldPieces,
-                                        ),
-                                      });
-
-                                  Navigator.pop(context);
-                                } catch (e) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text("Error updating data: $e"),
-                                    ),
-                                  );
-                                }
-
-                                setModalState(() => isLoading = false);
-                              },
-                            ),
-                      const SizedBox(height: 16),
-                    ],
-                  ),
-                );
-              },
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom + 32,
+        top: 24,
+        left: 24,
+        right: 24,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
           ),
-        );
-      },
-    ).whenComplete(() {
-      // Dispose controllers to prevent memory leaks
-      dateController.dispose();
-      cartonController.dispose();
-      statusController.dispose();
-    });
+          const SizedBox(height: 24),
+          const Text(
+            "Edit Receipt Info",
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 24),
+          TextField(
+            controller: dateController,
+            decoration: const InputDecoration(
+              labelText: "Date",
+              prefixIcon: Icon(Icons.calendar_today_outlined),
+            ),
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: cartonController,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(
+              labelText: "Cartons",
+              prefixIcon: Icon(Icons.inventory_2_outlined),
+            ),
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: statusController,
+            decoration: const InputDecoration(
+              labelText: "Status (Paid/Unpaid)",
+              prefixIcon: Icon(Icons.payments_outlined),
+            ),
+          ),
+          const SizedBox(height: 32),
+          AddButton(
+            isLoading: _isLoading,
+            text: "Update Record",
+            fn: () async {
+              setState(() => _isLoading = true);
+              try {
+                final data = widget.doc.data() as Map<String, dynamic>? ?? {};
+                int newCartons = int.tryParse(cartonController.text) ?? 0;
+                int oldCartons = data["Received_carton"] ?? 0;
+                int newBoxes = newCartons * BOX_MULTIPLIER;
+                int oldBoxes = data["Received_box"] ?? 0;
+                int newPieces = newCartons * PIECE_MULTIPLIER;
+                int oldPieces = data["Received_pieces"] ?? 0;
+
+                await FirebaseFirestore.instance
+                    .collection("Packaging")
+                    .doc(widget.packagerName)
+                    .collection("Received")
+                    .doc(widget.doc.id)
+                    .update({
+                      "Date": dateController.text,
+                      "Received_carton": newCartons,
+                      "Received_box": newBoxes,
+                      "Received_pieces": newPieces,
+                      "Status": statusController.text,
+                    });
+                var readyBagsData = await FirebaseFirestore.instance
+                    .collection("Extras")
+                    .doc("Ready Bags")
+                    .get();
+                int oldReadyCartons = await readyBagsData["Ready Cartons"];
+                int oldReadyPieces = await readyBagsData["Ready Pieces"];
+                int difference = newCartons - oldCartons;
+                print("Ready Bags $oldReadyPieces");
+
+                await FirebaseFirestore.instance
+                    .collection("Extras")
+                    .doc("Ready Bags")
+                    .update({
+                      "Ready Cartons": FieldValue.increment(
+                        difference,
+                      ),
+                      "Ready Pieces": FieldValue.increment(
+                        difference*144,
+                      ),
+                    });
+                await FirebaseFirestore.instance
+                    .collection("Packaging")
+                    .doc(widget.packagerName)
+                    .update({
+                      "Received Carton": FieldValue.increment(
+                        newCartons - oldCartons,
+                      ),
+                      "Boxes": FieldValue.increment(newBoxes - oldBoxes),
+                      "Pieces": FieldValue.increment(newPieces - oldPieces),
+                    });
+
+                if (mounted) Navigator.pop(context);
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(SnackBar(content: Text("Error: $e")));
+                }
+              } finally {
+                if (mounted) setState(() => _isLoading = false);
+              }
+            },
+          ),
+        ],
+      ),
+    );
   }
 }

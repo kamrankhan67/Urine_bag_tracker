@@ -1,449 +1,4 @@
-// import 'package:cloud_firestore/cloud_firestore.dart';
-// import 'package:firebase_core/firebase_core.dart';
-// import 'package:flutter/material.dart';
-// import 'package:urine_bag/commons/addButton.dart';
-
-// class Waste extends StatefulWidget {
-//   const Waste({super.key});
-
-//   @override
-//   State<Waste> createState() => _WasteState();
-// }
-
-// class _WasteState extends State<Waste> {
-//   @override
-//   initState() {
-//     super.initState();
-//     _fetchInventoryDocs(); // Fetch inventory documents when the widget is initialized
-//   }
-
-//   Map<String, TextEditingController> controllers = {};
-//   List<String> inventoryDocIds = [];
-//   final TextEditingController _dateController = TextEditingController();
-
-//   Future<void> _fetchInventoryDocs() async {
-//     try {
-//       QuerySnapshot snapshot = await FirebaseFirestore.instance
-//           .collection('Inventory')
-//           .get(); // Fetch all documents in the Inventory collection
-
-//       setState(() {
-//         // Store document IDs
-//         inventoryDocIds = snapshot.docs.map((doc) => doc.id).toList();
-
-//         // Initialize controllers for each document
-//         for (var docId in inventoryDocIds) {
-//           if (!controllers.containsKey(docId)) {
-//             controllers[docId] = TextEditingController();
-//           }
-//         }
-//       });
-//     } catch (e) {
-//       print("Error fetching inventory documents: $e");
-//     }
-//   }
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       floatingActionButton: FloatingActionButton(
-//         backgroundColor: Colors.black,
-//         onPressed: () {
-//           showModalBottomSheet(
-//             context: context,
-//             isScrollControlled: true,
-//             shape: const RoundedRectangleBorder(
-//               borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-//             ),
-//             builder: (context) {
-//               return SingleChildScrollView(
-//                 physics: BouncingScrollPhysics(),
-
-//                 child: Padding(
-//                   padding: EdgeInsets.only(
-//                     bottom: MediaQuery.of(context).viewInsets.bottom,
-//                   ),
-//                   child: Container(
-//                     padding: const EdgeInsets.all(16),
-//                     margin: EdgeInsets.symmetric(horizontal: 20),
-//                     height: MediaQuery.of(context).size.height * 1.40,
-//                     child: Column(
-//                       crossAxisAlignment: CrossAxisAlignment.center,
-//                       children: [
-//                         Center(
-//                           child: Container(
-//                             width: 40,
-//                             height: 5,
-//                             margin: const EdgeInsets.only(bottom: 16),
-//                             decoration: BoxDecoration(
-//                               color: Colors.grey[400],
-//                               borderRadius: BorderRadius.circular(10),
-//                             ),
-//                           ),
-//                         ),
-
-//                         const Text(
-//                           "Add Waste Items",
-//                           style: TextStyle(
-//                             fontSize: 18,
-//                             fontWeight: FontWeight.bold,
-//                           ),
-//                         ),
-
-//                         const SizedBox(height: 16),
-
-//                         SizedBox(height: 15),
-//                         TextField(
-//                           controller: _dateController,
-//                           readOnly: true,
-//                           decoration: InputDecoration(
-//                             labelText: "Date",
-//                             border: OutlineInputBorder(),
-//                           ),
-//                           onTap: () async {
-//                             DateTime? picked = await showDatePicker(
-//                               context: context,
-//                               initialDate: DateTime.now(),
-//                               firstDate: DateTime(2020),
-//                               lastDate: DateTime(2100),
-//                             );
-
-//                             if (picked != null) {
-//                               _dateController.text =
-//                                   "${picked.day}/${picked.month}/${picked.year}";
-//                             }
-//                           },
-//                         ),
-//                         ...inventoryDocIds.map((docId) {
-//                           return Container(
-//                             margin: EdgeInsets.symmetric(vertical: 10),
-//                             child: TextField(
-//                               controller: controllers[docId],
-//                               decoration: InputDecoration(
-//                                 labelText: docId,
-//                                 border: OutlineInputBorder(),
-//                               ),
-//                               keyboardType: TextInputType.number,
-//                             ),
-//                           );
-//                         }),
-
-//                         AddButton(
-//                           fn: () {
-//                             _sendData();
-//                           },
-//                         ),
-//                       ],
-//                     ),
-//                   ),
-//                 ),
-//               );
-//             },
-//           );
-//         },
-//         child: Icon(Icons.add, color: Colors.white),
-//       ),
-//       body: SafeArea(
-//         child: SingleChildScrollView(
-//           child: Column(
-//             children: [
-//               Container(
-//                 padding: EdgeInsets.only(left: 20, top: 10, bottom: 10),
-//                 width: MediaQuery.of(context).size.width,
-//                 decoration: BoxDecoration(
-//                   color: Color.fromRGBO(26, 50, 99, 1),
-//                   borderRadius: BorderRadius.only(
-//                     bottomLeft: Radius.circular(10),
-//                     bottomRight: Radius.circular(10),
-//                   ),
-//                 ),
-//                 child: Center(
-//                   child: Row(
-//                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-//                     children: [
-//                       IconButton(
-//                         onPressed: () => Navigator.pop(context),
-//                         icon: const Icon(
-//                           Icons.arrow_back_rounded,
-//                           color: Colors.white,
-//                         ),
-//                       ),
-//                       Text(
-//                         "Waste Detail",
-//                         style: const TextStyle(
-//                           color: Colors.white,
-//                           fontWeight: FontWeight.bold,
-//                           fontSize: 23,
-//                         ),
-//                       ),
-//                       const SizedBox(width: 50),
-//                     ],
-//                   ),
-//                 ),
-//               ),
-
-//               StreamBuilder(
-//                 stream: FirebaseFirestore.instance
-//                     .collection("Extras")
-//                     .doc("Waste")
-//                     .collection("Detail")
-//                     .snapshots(),
-//                 builder: (context, snapshot) {
-//                   if (snapshot.hasError) {
-//                     return Text("Error fetching waste data: ${snapshot.error}");
-//                   }
-
-//                   if (snapshot.connectionState == ConnectionState.waiting) {
-//                     return CircularProgressIndicator();
-//                   }
-
-//                   if (snapshot.data!.docs.isEmpty) {
-//                     return Text("No waste data available.");
-//                   }
-
-//                   return ListView.builder(
-//                     shrinkWrap: true,
-//                     physics: NeverScrollableScrollPhysics(),
-//                     itemCount: snapshot.data!.docs.length,
-//                     itemBuilder: (context, index) {
-//                       var doc = snapshot.data!.docs[index];
-//                       var data = doc.data() as Map<String, dynamic>;
-//                       data.remove("createdAt"); // Remove Timestamp from display
-//                       data.remove(
-//                         "Date",
-//                       ); // Remove Date from display since it's shown in the title
-//                       data.remove("LedgerDocId"); // Remove LedgerDocId from display
-//                       return Column(
-//                         children: [
-//                           Container(
-//                             padding: const EdgeInsets.all(12),
-//                             margin: const EdgeInsets.symmetric(
-//                               horizontal: 20,
-//                               vertical: 10,
-//                             ),
-//                             width: MediaQuery.of(context).size.width,
-//                             decoration: BoxDecoration(
-//                               color: const Color.fromARGB(255, 11, 20, 52),
-//                               borderRadius: BorderRadius.circular(12),
-//                             ),
-//                             child: Column(
-//                               children: [
-//                                 /// Title
-//                                 Center(
-//                                   child: Text(
-//                                     'Date : ${doc["Date"] ?? 0}',
-//                                     style: TextStyle(
-//                                       color: Colors.white,
-//                                       fontWeight: FontWeight.bold,
-//                                       fontSize: 17,
-//                                     ),
-//                                   ),
-//                                 ),
-
-//                                 const SizedBox(height: 15),
-
-//                                 /// 🔥 GRID VIEW
-//                                 GridView.builder(
-//                                   shrinkWrap: true,
-//                                   physics: const NeverScrollableScrollPhysics(),
-//                                   gridDelegate:
-//                                       const SliverGridDelegateWithFixedCrossAxisCount(
-//                                         crossAxisCount: 2,
-//                                         childAspectRatio: 3.2,
-//                                         mainAxisSpacing: 8,
-//                                         crossAxisSpacing: 8,
-//                                       ),
-//                                   itemCount: data.length,
-//                                   itemBuilder: (context, index) {
-//                                     List<String> keys = data.keys.toList();
-//                                     String key = keys[index];
-
-//                                     return Container(
-//                                       padding: const EdgeInsets.symmetric(
-//                                         horizontal: 8,
-//                                       ),
-//                                       decoration: BoxDecoration(
-//                                         color: Colors.blueGrey.shade700,
-//                                         borderRadius: BorderRadius.circular(8),
-//                                       ),
-//                                       child: Center(
-//                                         child: Text(
-//                                           "$key : ${data[key] ?? 0}",
-//                                           style: const TextStyle(
-//                                             color: Colors.white,
-//                                             fontSize: 12,
-//                                             fontWeight: FontWeight.bold,
-//                                           ),
-//                                         ),
-//                                       ),
-//                                     );
-//                                   },
-//                                 ),
-
-//                                 const SizedBox(height: 15),
-
-//                                 SizedBox(height: 20),
-//                                 GestureDetector(
-//                                   onTap: () {
-//                                     _deleteData(doc.id);
-//                                   },
-//                                   child: Container(
-//                                     height: 45,
-//                                     decoration: BoxDecoration(
-//                                       color: const Color.fromARGB(
-//                                         255,
-//                                         255,
-//                                         60,
-//                                         1,
-//                                       ),
-//                                       borderRadius: BorderRadius.circular(8),
-//                                     ),
-//                                     child: const Center(
-//                                       child: Text(
-//                                         "Delete",
-//                                         style: TextStyle(
-//                                           color: Colors.white,
-//                                           fontSize: 15,
-//                                           fontWeight: FontWeight.bold,
-//                                         ),
-//                                       ),
-//                                     ),
-//                                   ),
-//                                 ),
-//                               ],
-//                             ),
-//                           ),
-//                         ],
-//                       );
-//                     },
-//                   );
-//                 },
-//               ),
-//             ],
-//           ),
-//         ),
-//       ),
-//     );
-//   }
-
-//   Future<void> _sendData() async {
-//     try {
-//       String randomDocId = DateTime.now().millisecondsSinceEpoch.toString();
-//       Map<String, dynamic> dataToSend = {};
-
-//       // Collect the data to send
-//       controllers.forEach((docId, controller) {
-//         int value = int.tryParse(controller.text.trim()) ?? 0;
-//         if (value < 0) value = 0; // prevent negative send
-//         dataToSend[docId] = value;
-//       });
-
-//       // Add the waste data to Firestore
-//       await FirebaseFirestore.instance
-//           .collection('Extras')
-//           .doc("Waste")
-//           .collection("Detail")
-//           .doc()
-//           .set({
-//             "LedgerDocId": randomDocId,
-//             "Date": _dateController.text,
-//             ...dataToSend,
-//             "createdAt": FieldValue.serverTimestamp(),
-//           });
-
-//       // Use a forEach to update the inventory and await each update
-//       for (var entry in dataToSend.entries) {
-//         if (entry.value > 0) {
-//           // Ensure value is positive before updating inventory
-//           await FirebaseFirestore.instance
-//               .collection("Inventory")
-//               .doc(entry.key)
-//               .update({"quantity": FieldValue.increment(-entry.value)});
-//           await FirebaseFirestore.instance
-//               .collection("Inventory")
-//               .doc(entry.key)
-//               .collection("Ledger")
-//               .doc(randomDocId)
-//               .set({
-//                 "Quantity": -entry.value,
-//                 "Description": "Waste",
-//                 "Color": "Red",
-//                 "Date": _dateController.text,
-//                 "createdAt": FieldValue.serverTimestamp(),
-//               });
-//         }
-//       }
-
-//       // Close the bottom sheet after successful operation
-//       Navigator.pop(context); // Close the bottom sheet after adding data
-//       ScaffoldMessenger.of(
-//         context,
-//       ).showSnackBar(SnackBar(content: Text("Waste data added successfully!")));
-//     } catch (e) {
-//       print("Error adding waste data: $e");
-
-//       // Optionally, show an error message to the user
-//       ScaffoldMessenger.of(
-//         context,
-//       ).showSnackBar(SnackBar(content: Text("Error adding waste data: $e")));
-//     }
-//   }
-//   Future<void> _deleteData(String docId) async {
-//   try {
-//     await FirebaseFirestore.instance
-//         .collection("Extras")
-//         .doc("Waste")
-//         .collection("Detail")
-//         .doc(docId)
-//         .get()
-//         .then((value) {
-//           if (value.exists) {
-//             var data = value.data() as Map<String, dynamic>;
-
-//             // Example of handling a Timestamp field comparison
-//             Timestamp createdAt = data["createdAt"];
-//             if (createdAt != null && createdAt.toDate().isBefore(DateTime.now())) {
-//               // Proceed if createdAt is before the current time
-//               data.remove("createdAt"); // Remove Timestamp from processing
-//               data.remove("Date"); // Remove Date from processing
-//               data.remove("LedgerDocId"); // Remove LedgerDocId from processing
-
-//               // Handle updating inventory based on the data entries
-//               for (var entry in data.entries) {
-//                 if (entry.value > 0) {
-//                   FirebaseFirestore.instance
-//                       .collection("Inventory")
-//                       .doc(entry.key)
-//                       .update({"quantity": FieldValue.increment(entry.value)});
-//                 }
-//               }
-//             }
-//           }
-//         });
-
-//     // Deleting the document from Firestore
-//     await FirebaseFirestore.instance
-//         .collection("Extras")
-//         .doc("Waste")
-//         .collection("Detail")
-//         .doc(docId)
-//         .delete();
-
-//     // Show success message
-//     ScaffoldMessenger.of(context).showSnackBar(
-//       SnackBar(content: Text("Waste data deleted successfully!")),
-//     );
-//   } catch (e) {
-//     print("Error deleting data: $e");
-//     ScaffoldMessenger.of(context).showSnackBar(
-//       SnackBar(content: Text("Error deleting data: $e")),
-//     );
-//   }
-// }
-
-// }
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:urine_bag/commons/addButton.dart';
 
@@ -455,468 +10,372 @@ class Waste extends StatefulWidget {
 }
 
 class _WasteState extends State<Waste> {
+  final Map<String, TextEditingController> _controllers = {};
+  List<String> _inventoryDocIds = [];
+  final TextEditingController _dateController = TextEditingController();
+  bool _isLoading = false;
+
   @override
-  initState() {
+  void initState() {
     super.initState();
-    _fetchInventoryDocs(); // Fetch inventory documents when the widget is initialized
+    _fetchInventoryDocs();
   }
 
-  Map<String, TextEditingController> controllers = {};
-  List<String> inventoryDocIds = [];
-  final TextEditingController _dateController = TextEditingController();
+  @override
+  void dispose() {
+    for (var controller in _controllers.values) {
+      controller.dispose();
+    }
+    _dateController.dispose();
+    super.dispose();
+  }
 
   Future<void> _fetchInventoryDocs() async {
     try {
-      QuerySnapshot snapshot = await FirebaseFirestore.instance
-          .collection('Inventory')
-          .get(); // Fetch all documents in the Inventory collection
-
+      QuerySnapshot snapshot = await FirebaseFirestore.instance.collection('Inventory').get();
       setState(() {
-        // Store document IDs
-        inventoryDocIds = snapshot.docs.map((doc) => doc.id).toList();
-
-        // Initialize controllers for each document
-        for (var docId in inventoryDocIds) {
-          if (!controllers.containsKey(docId)) {
-            controllers[docId] = TextEditingController();
+        _inventoryDocIds = snapshot.docs.map((doc) => doc.id).toList();
+        for (var docId in _inventoryDocIds) {
+          if (!_controllers.containsKey(docId)) {
+            _controllers[docId] = TextEditingController();
           }
         }
       });
     } catch (e) {
-      print("Error fetching inventory documents: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error fetching inventory documents: $e")),
-      );
+      _showSnack("Error fetching inventory: $e");
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.black,
-        onPressed: () {
-          try {
-            showModalBottomSheet(
-              context: context,
-              isScrollControlled: true,
-              shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-              ),
-              builder: (context) {
-                return SingleChildScrollView(
-                  physics: BouncingScrollPhysics(),
-                  child: Padding(
-                    padding: EdgeInsets.only(
-                      bottom: MediaQuery.of(context).viewInsets.bottom,
-                    ),
-                    child: Container(
-                      padding: const EdgeInsets.all(16),
-                      margin: EdgeInsets.symmetric(horizontal: 20),
-                      height: MediaQuery.of(context).size.height * 1.40,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Center(
-                            child: Container(
-                              width: 40,
-                              height: 5,
-                              margin: const EdgeInsets.only(bottom: 16),
-                              decoration: BoxDecoration(
-                                color: Colors.grey[400],
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                            ),
-                          ),
-                          const Text(
-                            "Add Waste Items",
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          SizedBox(height: 15),
-                          TextField(
-                            controller: _dateController,
-                            readOnly: true,
-                            decoration: InputDecoration(
-                              labelText: "Date",
-                              border: OutlineInputBorder(),
-                            ),
-                            onTap: () async {
-                              try {
-                                DateTime? picked = await showDatePicker(
-                                  context: context,
-                                  initialDate: DateTime.now(),
-                                  firstDate: DateTime(2020),
-                                  lastDate: DateTime(2100),
-                                );
-
-                                if (picked != null) {
-                                  _dateController.text =
-                                      "${picked.day}/${picked.month}/${picked.year}";
-                                }
-                              } catch (e) {
-                                print("Error selecting date: $e");
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text("Error selecting date: $e"),
-                                  ),
-                                );
-                              }
-                            },
-                          ),
-                          ...inventoryDocIds.map((docId) {
-                            return Container(
-                              margin: EdgeInsets.symmetric(vertical: 10),
-                              child: TextField(
-                                controller: controllers[docId],
-                                decoration: InputDecoration(
-                                  labelText: docId,
-                                  border: OutlineInputBorder(),
-                                ),
-                                keyboardType: TextInputType.number,
-                              ),
-                            );
-                          }),
-                          AddButton(
-                            fn: () {
-                              _sendData();
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-              },
-            );
-          } catch (e) {
-            print("Error showing modal: $e");
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text("Error opening modal: $e")));
-          }
-        },
-        child: Icon(Icons.add, color: Colors.white),
+      appBar: AppBar(
+        title: const Text("Waste Management"),
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              Container(
-                padding: EdgeInsets.only(left: 20, top: 10, bottom: 10),
-                width: MediaQuery.of(context).size.width,
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _showAddSheet,
+        label: const Text("Record Waste"),
+        icon: const Icon(Icons.add_circle_outline),
+        backgroundColor: theme.colorScheme.error,
+        foregroundColor: Colors.white,
+      ),
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection("Extras")
+            .doc("Waste")
+            .collection("Detail")
+            .orderBy('createdAt', descending: true)
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return const Center(child: Text("Error loading waste records"));
+          }
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.delete_sweep_outlined, size: 64, color: Colors.grey[300]),
+                  const SizedBox(height: 16),
+                  const Text("No waste records found", style: TextStyle(color: Colors.grey)),
+                ],
+              ),
+            );
+          }
+
+          return ListView.builder(
+            padding: const EdgeInsets.all(16),
+            physics: const BouncingScrollPhysics(),
+            itemCount: snapshot.data!.docs.length,
+            itemBuilder: (context, index) {
+              final ds = snapshot.data!.docs[index];
+              return _wasteRecordCard(ds, theme);
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _wasteRecordCard(DocumentSnapshot ds, ThemeData theme) {
+    var data = ds.data() as Map<String, dynamic>;
+    final date = data["Date"] ?? "N/A";
+    
+    // Extract items with non-zero waste
+    final wasteItems = data.entries.where((e) => 
+      e.key != "Date" && 
+      e.key != "LedgerDocId" && 
+      e.key != "createdAt" && 
+      (e.value is num && e.value > 0)
+    ).toList();
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.calendar_today_outlined, size: 14, color: Colors.grey),
+                    const SizedBox(width: 8),
+                    Text(date, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+                  ],
+                ),
+                IconButton(
+                  onPressed: () => _showDeleteDialog(ds.id),
+                  icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  visualDensity: VisualDensity.compact,
+                ),
+              ],
+            ),
+            const Divider(height: 24),
+            const Text("Wasted Items", style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: wasteItems.map((item) => Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: Color.fromRGBO(26, 50, 99, 1),
-                  borderRadius: BorderRadius.only(
-                    bottomLeft: Radius.circular(10),
-                    bottomRight: Radius.circular(10),
-                  ),
+                  color: theme.colorScheme.error.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: theme.colorScheme.error.withOpacity(0.1)),
                 ),
-                child: Center(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      IconButton(
-                        onPressed: () => Navigator.pop(context),
-                        icon: const Icon(
-                          Icons.arrow_back_rounded,
-                          color: Colors.white,
-                        ),
-                      ),
-                      Text(
-                        "Waste Detail",
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 23,
-                        ),
-                      ),
-                      const SizedBox(width: 50),
-                    ],
-                  ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(item.key, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+                    const SizedBox(width: 8),
+                    Text("-${item.value}", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: theme.colorScheme.error)),
+                  ],
                 ),
-              ),
-              StreamBuilder(
-                stream: FirebaseFirestore.instance
-                    .collection("Extras")
-                    .doc("Waste")
-                    .collection("Detail")
-                    .snapshots(),
-                builder: (context, snapshot) {
-                  if (snapshot.hasError) {
-                    return Text("Error fetching waste data: ${snapshot.error}");
-                  }
-
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return CircularProgressIndicator();
-                  }
-
-                  if (snapshot.data!.docs.isEmpty) {
-                    return Text("No waste data available.");
-                  }
-
-                  return ListView.builder(
-                    shrinkWrap: true,
-                    physics: NeverScrollableScrollPhysics(),
-                    itemCount: snapshot.data!.docs.length,
-                    itemBuilder: (context, index) {
-                      var doc = snapshot.data!.docs[index];
-                      var data = doc.data() as Map<String, dynamic>;
-                      data.remove("createdAt"); // Remove Timestamp from display
-                      data.remove("Date"); // Remove Date from display
-                      data.remove(
-                        "LedgerDocId",
-                      ); // Remove LedgerDocId from display
-                      return Column(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            margin: const EdgeInsets.symmetric(
-                              horizontal: 20,
-                              vertical: 10,
-                            ),
-                            width: MediaQuery.of(context).size.width,
-                            decoration: BoxDecoration(
-                              color: const Color.fromARGB(255, 11, 20, 52),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Column(
-                              children: [
-                                Center(
-                                  child: Text(
-                                    'Date : ${doc["Date"] ?? 0}',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 17,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 15),
-                                GridView.builder(
-                                  shrinkWrap: true,
-                                  physics: const NeverScrollableScrollPhysics(),
-                                  gridDelegate:
-                                      const SliverGridDelegateWithFixedCrossAxisCount(
-                                        crossAxisCount: 2,
-                                        childAspectRatio: 3.2,
-                                        mainAxisSpacing: 8,
-                                        crossAxisSpacing: 8,
-                                      ),
-                                  itemCount: data.length,
-                                  itemBuilder: (context, index) {
-                                    List<String> keys = data.keys.toList();
-                                    String key = keys[index];
-
-                                    return Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: Colors.blueGrey.shade700,
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Center(
-                                        child: Text(
-                                          "$key : ${data[key] ?? 0}",
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                ),
-                                const SizedBox(height: 15),
-                                SizedBox(height: 20),
-                                GestureDetector(
-                                  onTap: () {
-                                    _deleteData(doc.id);
-                                  },
-                                  child: Container(
-                                    height: 45,
-                                    decoration: BoxDecoration(
-                                      color: const Color.fromARGB(
-                                        255,
-                                        255,
-                                        60,
-                                        1,
-                                      ),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: const Center(
-                                      child: Text(
-                                        "Delete",
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      );
-                    },
-                  );
-                },
-              ),
-            ],
-          ),
+              )).toList(),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Future<void> _sendData() async {
-    try {
-      String randomDocId = DateTime.now().millisecondsSinceEpoch.toString();
-      Map<String, dynamic> dataToSend = {};
-
-      // Collect data and check inventory for sufficient stock
-      bool isValid = true;
-      for (var docId in controllers.keys) {
-        int value = int.tryParse(controllers[docId]!.text.trim()) ?? 0;
-        if (value < 0) value = 0; // Prevent negative values
-
-        // Fetch the current inventory quantity for the document ID
-        DocumentSnapshot inventoryDoc = await FirebaseFirestore.instance
-            .collection('Inventory')
-            .doc(docId)
-            .get();
-
-        if (inventoryDoc.exists) {
-          int currentStock = inventoryDoc['quantity'] ?? 0;
-
-          if (value > currentStock) {
-            isValid = false;
-            Navigator.pop(context);
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  "Not enough stock for $docId. Available: $currentStock, Requested: $value",
-                ),
+  void _showAddSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Container(
+              height: MediaQuery.of(context).size.height * 0.85,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+              ),
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+                top: 24,
+                left: 24,
+                right: 24,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2)))),
+                  const SizedBox(height: 24),
+                  const Text("Report Waste", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  const Text("Enter quantity for items that were wasted.", style: TextStyle(color: Colors.grey, fontSize: 13)),
+                  const SizedBox(height: 24),
+                  TextField(
+                    controller: _dateController,
+                    readOnly: true,
+                    decoration: const InputDecoration(labelText: "Date", prefixIcon: Icon(Icons.calendar_today_outlined)),
+                    onTap: () async {
+                      DateTime? picked = await showDatePicker(
+                        context: context,
+                        initialDate: DateTime.now(),
+                        firstDate: DateTime(2020),
+                        lastDate: DateTime(2100),
+                      );
+                      if (picked != null) {
+                        setModalState(() => _dateController.text = "${picked.day}/${picked.month}/${picked.year}");
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 24),
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: _inventoryDocIds.length,
+                      itemBuilder: (context, index) {
+                        final id = _inventoryDocIds[index];
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 16),
+                          child: TextField(
+                            controller: _controllers[id],
+                            keyboardType: TextInputType.number,
+                            decoration: InputDecoration(
+                              labelText: id,
+                              prefixIcon: const Icon(Icons.inventory_2_outlined),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  AddButton(
+                    isLoading: _isLoading,
+                    text: "Submit Waste Report",
+                    fn: () => _sendData(context, setModalState),
+                  ),
+                ],
               ),
             );
-            break; // Exit if there's an error
           }
-        } else {
-          isValid = false;
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Inventory item $docId not found.")),
-          );
-          break;
-        }
-
-        dataToSend[docId] = value;
-      }
-
-      // Proceed with saving the waste data if stock is sufficient
-      if (isValid) {
-        // Add the waste data to Firestore
-        await FirebaseFirestore.instance
-            .collection('Extras')
-            .doc("Waste")
-            .collection("Detail")
-            .doc()
-            .set({
-              "LedgerDocId": randomDocId,
-              "Date": _dateController.text,
-              ...dataToSend,
-              "createdAt": FieldValue.serverTimestamp(),
-            });
-
-        // Update inventory if waste data is added successfully
-        for (var entry in dataToSend.entries) {
-          if (entry.value > 0) {
-            await FirebaseFirestore.instance
-                .collection("Inventory")
-                .doc(entry.key)
-                .update({"quantity": FieldValue.increment(-entry.value)});
-            await FirebaseFirestore.instance
-                .collection("Inventory")
-                .doc(entry.key)
-                .collection("Ledger")
-                .doc(randomDocId)
-                .set({
-                  "Quantity": -entry.value,
-                  "Description": "Waste",
-                  "Color": "Red",
-                  "Date": _dateController.text,
-                  "createdAt": FieldValue.serverTimestamp(),
-                });
-          }
-        }
-
-        Navigator.pop(context); // Close the bottom sheet after adding data
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Waste data added successfully!")),
         );
-      }
-    } catch (e) {
-      print("Error adding waste data: $e");
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Error adding waste data: $e")));
+      },
+    );
+  }
+
+  Future<void> _sendData(BuildContext context, StateSetter setModalState) async {
+    if (_dateController.text.isEmpty) {
+      _showSnack("Please select a date.");
+      return;
     }
+
+    setModalState(() => _isLoading = true);
+    try {
+      String randomDocId = DateTime.now().millisecondsSinceEpoch.toString();
+      Map<String, int> dataToSend = {};
+
+      // Validate stock for all items
+      for (var docId in _inventoryDocIds) {
+        int val = int.tryParse(_controllers[docId]!.text.trim()) ?? 0;
+        if (val > 0) {
+          DocumentSnapshot invDoc = await FirebaseFirestore.instance.collection('Inventory').doc(docId).get();
+          if (invDoc.exists) {
+            int stock = invDoc['quantity'] ?? 0;
+            if (val > stock) {
+              _showSnack("Insufficient stock for $docId (Available: $stock)");
+              setModalState(() => _isLoading = false);
+              return;
+            }
+            dataToSend[docId] = val;
+          }
+        }
+      }
+
+      if (dataToSend.isEmpty) {
+        _showSnack("No waste quantities entered.");
+        setModalState(() => _isLoading = false);
+        return;
+      }
+
+      // Save waste record
+      await FirebaseFirestore.instance
+          .collection('Extras')
+          .doc("Waste")
+          .collection("Detail")
+          .add({
+            "LedgerDocId": randomDocId,
+            "Date": _dateController.text,
+            ...dataToSend,
+            "createdAt": FieldValue.serverTimestamp(),
+          });
+
+      // Update inventory and ledgers
+      for (var entry in dataToSend.entries) {
+        await FirebaseFirestore.instance.collection("Inventory").doc(entry.key).update({
+          "quantity": FieldValue.increment(-entry.value),
+        });
+        await FirebaseFirestore.instance.collection("Inventory").doc(entry.key).collection("Ledger").doc(randomDocId).set({
+          "Quantity": -entry.value,
+          "Description": "Waste",
+          "Color": "Red",
+          "Date": _dateController.text,
+          "Timestamp": FieldValue.serverTimestamp(),
+        });
+      }
+
+      for (var controller in _controllers.values) {
+        controller.clear();
+      }
+      if (mounted) Navigator.pop(context);
+      _showSnack("Waste report submitted!");
+    } catch (e) {
+      _showSnack("Error: $e");
+    } finally {
+      setModalState(() => _isLoading = false);
+    }
+  }
+
+  void _showDeleteDialog(String docId) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Delete Record?"),
+        content: const Text("This report will be removed and inventory levels will be restored."),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _deleteData(docId);
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+            child: const Text("Delete"),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _deleteData(String docId) async {
     try {
-      await FirebaseFirestore.instance
+      DocumentSnapshot ds = await FirebaseFirestore.instance
           .collection("Extras")
           .doc("Waste")
           .collection("Detail")
           .doc(docId)
-          .get()
-          .then((value) {
-            if (value.exists) {
-              var data = value.data() as Map<String, dynamic>;
-              Timestamp createdAt = data["createdAt"];
-              if (createdAt != null &&
-                  createdAt.toDate().isBefore(DateTime.now())) {
-                data.remove("createdAt"); // Remove Timestamp from processing
-                data.remove("Date");
-                data.remove("LedgerDocId");
+          .get();
 
-                for (var entry in data.entries) {
-                  if (entry.value > 0) {
-                    FirebaseFirestore.instance
-                        .collection("Inventory")
-                        .doc(entry.key)
-                        .update({
-                          "quantity": FieldValue.increment(entry.value),
-                        });
-                  }
-                }
-              }
+      if (ds.exists) {
+        var data = ds.data() as Map<String, dynamic>;
+        String? ledgerId = data["LedgerDocId"];
+        
+        // Restore inventory
+        for (var entry in data.entries) {
+          if (entry.key != "Date" && entry.key != "LedgerDocId" && entry.key != "createdAt" && entry.value is num) {
+            await FirebaseFirestore.instance.collection("Inventory").doc(entry.key).update({
+              "quantity": FieldValue.increment(entry.value),
+            });
+            if (ledgerId != null) {
+              await FirebaseFirestore.instance.collection("Inventory").doc(entry.key).collection("Ledger").doc(ledgerId).delete();
             }
-          });
+          }
+        }
+      }
 
-      await FirebaseFirestore.instance
-          .collection("Extras")
-          .doc("Waste")
-          .collection("Detail")
-          .doc(docId)
-          .delete();
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Waste data deleted successfully!")),
-      );
+      await FirebaseFirestore.instance.collection("Extras").doc("Waste").collection("Detail").doc(docId).delete();
+      _showSnack("Record deleted successfully");
     } catch (e) {
-      print("Error deleting data: $e");
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Error deleting data: $e")));
+      _showSnack("Error: $e");
     }
+  }
+
+  void _showSnack(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 }

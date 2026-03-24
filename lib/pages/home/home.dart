@@ -2,7 +2,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:urine_bag/commons/addButton.dart';
-import 'package:urine_bag/commons/home_button.dart';
 import 'package:urine_bag/pages/auth/authentication.dart';
 import 'package:urine_bag/pages/extras/extras.dart';
 import 'package:urine_bag/pages/inventory/inventory.dart';
@@ -19,9 +18,13 @@ class Home extends StatefulWidget {
 
 class _HomeState extends State<Home> {
   StreamSubscription<DocumentSnapshot>? _readyBagsSubscription;
+  StreamSubscription<QuerySnapshot>? _inventorySubscription;
+  StreamSubscription<QuerySnapshot>? _packagerSubscription;
   Map<String, TextEditingController> controllers = {};
   List<String> inventoryDocIds = [];
   final TextEditingController _dateController = TextEditingController();
+  bool _isSending = false;
+  bool _isReceiving = false;
 
   final TextEditingController _recievedCartonController =
       TextEditingController();
@@ -33,8 +36,6 @@ class _HomeState extends State<Home> {
   String? receivedSelectedItem;
   List<String> packagerDocIds = [];
 
-  List<String> PackagerList = []; // List to store document IDs
-
   @override
   void initState() {
     super.initState();
@@ -44,12 +45,6 @@ class _HomeState extends State<Home> {
     
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _fetchInventoryDocs();
-    _fetchPackagerDocs();
-  }
 
   Future<void> _fetchReadyBags() async {
     _readyBagsSubscription = FirebaseFirestore.instance
@@ -69,153 +64,62 @@ class _HomeState extends State<Home> {
   }
 
   Future<void> _fetchInventoryDocs() async {
-    try {
-      QuerySnapshot snapshot = await FirebaseFirestore.instance
-          .collection('Inventory')
-          .get(); // Fetch all documents in the Inventory collection
-
+    _inventorySubscription = FirebaseFirestore.instance
+        .collection('Inventory')
+        .snapshots()
+        .listen((snapshot) {
+      if (!mounted) return;
       setState(() {
-        // Store document IDs
         inventoryDocIds = snapshot.docs.map((doc) => doc.id).toList();
 
-        // Initialize controllers for each document
+        // 1) Clean up controllers for deleted items
+        controllers.keys.toList().forEach((id) {
+          if (!inventoryDocIds.contains(id)) {
+            controllers[id]?.dispose();
+            controllers.remove(id);
+          }
+        });
+
+        // 2) Initialize new controllers
         for (var docId in inventoryDocIds) {
           if (!controllers.containsKey(docId)) {
             controllers[docId] = TextEditingController();
           }
         }
       });
-    } catch (e) {
-      print("Error fetching inventory documents: $e");
-    }
+    }, onError: (e) => print("Error streaming inventory: $e"));
   }
 
   Future<void> _fetchPackagerDocs() async {
-    try {
-      QuerySnapshot snapshot = await FirebaseFirestore.instance
-          .collection('Packaging')
-          .get(); // Fetch all documents in the Inventory collection
-
+    _packagerSubscription = FirebaseFirestore.instance
+        .collection('Packaging')
+        .snapshots()
+        .listen((snapshot) {
+      if (!mounted) return;
       setState(() {
-        // Store document IDs
         packagerDocIds = snapshot.docs.map((doc) => doc.id).toList();
-        print(packagerDocIds);
 
-        // Initialize controllers for each document
+        // Safety: Un-select if the selected packager was deleted
+        if (selectedItem != null && !packagerDocIds.contains(selectedItem)) {
+          selectedItem = null;
+        }
+        if (receivedSelectedItem != null &&
+            !packagerDocIds.contains(receivedSelectedItem)) {
+          receivedSelectedItem = null;
+        }
       });
-    } catch (e) {
-      print("Error fetching inventory documents: $e");
-    }
+    }, onError: (e) => print("Error streaming packagers: $e"));
   }
 
-  // Future<void> _sendData() async {
-  //   if (selectedItem == null) {
-  //     Navigator.pop(context);
-  //     ScaffoldMessenger.of(
-  //       context,
-  //     ).showSnackBar(const SnackBar(content: Text("Please select a packager")));
-  //     return;
-  //   }
-
-  //   try {
-  //     String randomId = DateTime.now().millisecondsSinceEpoch.toString();
-  //     Map<String, dynamic> dataToSend = {};
-
-  //     controllers.forEach((docId, controller) {
-  //       int value = int.tryParse(controller.text.trim()) ?? 0;
-  //       if (value < 0) value = 0; // prevent negative send
-  //       dataToSend[docId] = value;
-  //     });
-
-  //     DocumentReference packagingRef = FirebaseFirestore.instance
-  //         .collection('Packaging')
-  //         .doc(selectedItem);
-
-  //     // Save deliver record
-  //     await packagingRef.collection("Deliver").doc().set({
-  //       'Actual Date': DateTime.now(),
-  //       'Date': _dateController.text.trim(),
-  //       'Delivered Expected Carton': 0,
-  //       "Inventory Ledger": randomId,
-  //       ...dataToSend,
-  //     });
-
-  //     // Update inventory using transactions
-  //     for (var entry in dataToSend.entries) {
-  //       if (entry.value > 0) {
-  //         await FirebaseFirestore.instance.runTransaction((transaction) async {
-  //           DocumentReference invRef = FirebaseFirestore.instance
-  //               .collection("Inventory")
-  //               .doc(entry.key);
-
-  //           DocumentSnapshot snapshot = await transaction.get(invRef);
-
-  //           if (!snapshot.exists) {
-  //             // Close the bottom sheet before showing error
-  //             throw Exception("Inventory item ${entry.key} does not exist.");
-  //           }
-
-  //           int currentQty = snapshot.get("quantity") ?? 0;
-
-  //           if (currentQty < entry.value) {
-  //             Navigator.pop(
-  //               context,
-  //             ); // Close the bottom sheet before showing error
-  //             throw Exception(
-  //               "Not enough stock for ${entry.key}. Available: $currentQty",
-  //             );
-  //           }
-
-  //           transaction.update(invRef, {
-  //             "quantity": FieldValue.increment(-entry.value),
-  //           });
-
-  //           DocumentReference ledgerRef = invRef
-  //               .collection("Ledger")
-  //               .doc(randomId);
-
-  //           transaction.set(ledgerRef, {
-  //             "Date": _dateController.text.trim(),
-  //             "Quantity": "-${entry.value}",
-  //             "Color": "Red",
-  //             "Description": selectedItem!,
-  //             "Timestamp": FieldValue.serverTimestamp(),
-  //           });
-  //         });
-  //       }
-  //     }
-
-  //     // Update packaging totals
-  //     await packagingRef.update({
-  //       ...dataToSend.map((key, value) {
-  //         return MapEntry(key, FieldValue.increment(value));
-  //       }),
-  //     });
-
-  //     if (!mounted) return;
-
-  //     ScaffoldMessenger.of(
-  //       context,
-  //     ).showSnackBar(const SnackBar(content: Text("Data sent successfully!")));
-
-  //     Navigator.pop(context);
-  //   } catch (e) {
-  //     if (!mounted) return;
-
-  //     ScaffoldMessenger.of(
-  //       context,
-  //     ).showSnackBar(SnackBar(content: Text("Error: ${e.toString()}")));
-  //   }
-  // }
-  Future<void> _sendData() async {
+  Future<void> _sendData(StateSetter setModalState) async {
     if (selectedItem == null) {
-      Navigator.pop(context);
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text("Please select a packager")));
       return;
     }
 
+    setModalState(() => _isSending = true);
     try {
       final String randomId = DateTime.now().millisecondsSinceEpoch.toString();
 
@@ -317,12 +221,16 @@ class _HomeState extends State<Home> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(e.toString())));
+    } finally {
+      setModalState(() => _isSending = false);
     }
   }
 
   @override
   void dispose() {
-    _readyBagsSubscription?.cancel(); // VERY IMPORTANT
+    _readyBagsSubscription?.cancel();
+    _inventorySubscription?.cancel();
+    _packagerSubscription?.cancel();
 
     controllers.forEach((key, controller) => controller.dispose());
 
@@ -336,514 +244,398 @@ class _HomeState extends State<Home> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.black,
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: theme.colorScheme.primary,
         onPressed: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => Authentication()),
+            MaterialPageRoute(builder: (context) => const Authentication()),
           );
         },
-        child: Icon(Icons.menu_book, color: Colors.white),
+        label: const Text("Notebook", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        icon: const Icon(Icons.menu_book, color: Colors.white),
       ),
-      backgroundColor: const Color.fromRGBO(232, 226, 219, 1),
-
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              Container(
-                padding: EdgeInsets.only(left: 20, top: 10, bottom: 10),
-                width: MediaQuery.of(context).size.width,
+      body: CustomScrollView(
+        physics: const BouncingScrollPhysics(),
+        slivers: [
+          SliverAppBar(
+            expandedHeight: 120.0,
+            floating: false,
+            pinned: true,
+            flexibleSpace: FlexibleSpaceBar(
+              title: Text(
+                "Munir & Sons",
+                style: GoogleFonts.outfit(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                  fontSize: 20,
+                ),
+              ),
+              background: Container(
                 decoration: BoxDecoration(
-                  color: Color.fromRGBO(26, 50, 99, 1),
-                  borderRadius: BorderRadius.only(
-                    bottomLeft: Radius.circular(10),
-                    bottomRight: Radius.circular(10),
-                  ),
-                ),
-                child: Text(
-                  "Hi! Munir and Sons",
-                  style: GoogleFonts.playfairDisplay(
-                    fontSize: 23,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                    letterSpacing: 1.5,
+                  gradient: LinearGradient(
+                    colors: [theme.colorScheme.primary, theme.colorScheme.secondary],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
                 ),
               ),
-
-              SizedBox(
-                width: double.infinity,
-                height: 200,
-
-                child: Image.asset(
-                  'assets/images/logo_png.png',
-                  fit: BoxFit.fill,
-                ),
-              ),
-
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _homeContainer(
-                    "Ready Bags",
-                    '$readyBags',
-                    '$readyPieces',
-                    Color.fromRGBO(41, 99, 116, 1),
-                    context,
+                  Text(
+                    "Overview",
+                    style: theme.textTheme.titleLarge,
                   ),
-                  GestureDetector(
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => Extras()),
-                    ),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Color.fromRGBO(26, 50, 99, 1),
-                        border: Border.all(
-                          width: 1,
-                          color: Color.fromRGBO(26, 50, 99, 1),
-                        ),
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                      width: MediaQuery.of(context).size.width / 2.1,
-                      height: 130,
-                      padding: EdgeInsets.all(20),
-                      child: Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              "Extras",
-                              style: TextStyle(
-                                fontSize: 18,
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            SizedBox(height: 10),
-                            Icon(
-                              Icons.auto_awesome_motion_rounded,
-                              size: 28,
-                              color: Colors.white,
-                            ),
-                          ],
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _homeContainer(
+                          "Ready Bags",
+                          '$readyBags',
+                          '$readyPieces',
+                          theme.colorScheme.secondary,
+                          context,
                         ),
                       ),
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  GestureDetector(
-                    onTap: () {
-                      showModalBottomSheet(
-                        context: context,
-                        isScrollControlled: true,
-                        shape: const RoundedRectangleBorder(
-                          borderRadius: BorderRadius.vertical(
-                            top: Radius.circular(20),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const Extras()),
                           ),
-                        ),
-                        builder: (context) {
-                          return SingleChildScrollView(
-                            physics: BouncingScrollPhysics(),
-
-                            child: Padding(
-                              padding: EdgeInsets.only(
-                                bottom: MediaQuery.of(
-                                  context,
-                                ).viewInsets.bottom,
-                              ),
-                              child: Container(
-                                padding: const EdgeInsets.all(16),
-                                margin: EdgeInsets.symmetric(horizontal: 20),
-                                height:
-                                    MediaQuery.of(context).size.height * 0.6,
-                                child: SingleChildScrollView(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.center,
-                                    children: [
-                                      Center(
-                                        child: Container(
-                                          width: 40,
-                                          height: 5,
-                                          margin: const EdgeInsets.only(
-                                            bottom: 16,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: Colors.grey[400],
-                                            borderRadius: BorderRadius.circular(
-                                              10,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-
-                                      const Text(
-                                        "Deliver Item",
-                                        style: TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-
-                                      const SizedBox(height: 16),
-
-                                      packagerDocIds.isEmpty
-                                          ? Center(
-                                              child: Text("No Packager found"),
-                                            )
-                                          : DropdownButton<String>(
-                                              value:
-                                                  selectedItem, // Pass selectedItem directly
-                                              hint: Text("Select Packager"),
-                                              isExpanded: true,
-                                              onChanged: (String? value) {
-                                                setState(() {
-                                                  selectedItem =
-                                                      value; // update the selected value
-                                                });
-                                              },
-                                              items: packagerDocIds
-                                                  .map(
-                                                    (element) =>
-                                                        DropdownMenuItem<
-                                                          String
-                                                        >(
-                                                          value: element,
-                                                          child: Text(element),
-                                                        ),
-                                                  )
-                                                  .toList(),
-                                            ),
-
-                                      SizedBox(height: 15),
-                                      TextField(
-                                        controller: _dateController,
-                                        readOnly: true,
-                                        decoration: InputDecoration(
-                                          labelText: "Date",
-                                          border: OutlineInputBorder(),
-                                        ),
-                                        onTap: () async {
-                                          DateTime? picked =
-                                              await showDatePicker(
-                                                context: context,
-                                                initialDate: DateTime.now(),
-                                                firstDate: DateTime(2020),
-                                                lastDate: DateTime(2100),
-                                              );
-
-                                          if (picked != null) {
-                                            _dateController.text =
-                                                "${picked.day}/${picked.month}/${picked.year}";
-                                          }
-                                        },
-                                      ),
-                                      ...inventoryDocIds.map((docId) {
-                                        return Container(
-                                          margin: EdgeInsets.symmetric(
-                                            vertical: 10,
-                                          ),
-                                          child: TextField(
-                                            controller: controllers[docId],
-                                            decoration: InputDecoration(
-                                              labelText: docId,
-                                              border: OutlineInputBorder(),
-                                            ),
-                                            keyboardType: TextInputType.number,
-                                          ),
-                                        );
-                                      }),
-
-                                      AddButton(
-                                        fn: () {
-                                          if (selectedItem == null) {
-                                            ScaffoldMessenger.of(
-                                              context,
-                                            ).showSnackBar(
-                                              const SnackBar(
-                                                content: Text(
-                                                  "Please select a packager",
-                                                ),
-                                              ),
-                                            );
-                                            Navigator.pop(context);
-                                            return;
-                                          }
-                                          _sendData();
-                                        },
-                                      ),
-                                    ],
+                          child: Container(
+                            height: 140,
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.primary,
+                              borderRadius: BorderRadius.circular(20),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: theme.colorScheme.primary.withOpacity(0.2),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: const [
+                                Icon(Icons.auto_awesome_motion_rounded, size: 32, color: Colors.white),
+                                SizedBox(height: 12),
+                                Text(
+                                  "Extras",
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                              ),
+                              ],
                             ),
-                          );
-                        },
-                      );
-                    },
-                    child: Container(
-                      width: 150,
-                      height: 100,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(20),
-                        color: Colors.deepOrangeAccent,
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.send_sharp, color: Colors.white, size: 32),
-                          Text("Send", style: TextStyle(color: Colors.white)),
-                        ],
-                      ),
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: () {
-                      showModalBottomSheet(
-                        context: context,
-                        isScrollControlled: true,
-                        shape: const RoundedRectangleBorder(
-                          borderRadius: BorderRadius.vertical(
-                            top: Radius.circular(20),
                           ),
                         ),
-                        builder: (context) {
-                          return SingleChildScrollView(
-                            physics: BouncingScrollPhysics(),
-
-                            child: Padding(
-                              padding: EdgeInsets.only(
-                                bottom: MediaQuery.of(
-                                  context,
-                                ).viewInsets.bottom,
-                              ),
-                              child: Container(
-                                padding: const EdgeInsets.all(16),
-                                margin: EdgeInsets.symmetric(horizontal: 20),
-                                height:
-                                    MediaQuery.of(context).size.height * 0.65,
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    Center(
-                                      child: Container(
-                                        width: 40,
-                                        height: 5,
-                                        margin: const EdgeInsets.only(
-                                          bottom: 16,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: Colors.grey[400],
-                                          borderRadius: BorderRadius.circular(
-                                            10,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-
-                                    const Text(
-                                      "Recieved Item",
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-
-                                    const SizedBox(height: 16),
-                                    packagerDocIds.isEmpty
-                                        ? Center(
-                                            child: Text("No Packager found"),
-                                          )
-                                        : DropdownButton<String>(
-                                            value:
-                                                packagerDocIds.contains(
-                                                  receivedSelectedItem,
-                                                )
-                                                ? receivedSelectedItem
-                                                : null,
-                                            hint: Text("Select Packager"),
-                                            isExpanded: true,
-                                            onChanged: (String? value) {
-                                              setState(() {
-                                                receivedSelectedItem = value;
-                                              });
-                                            },
-                                            items: packagerDocIds
-                                                .map(
-                                                  (element) =>
-                                                      DropdownMenuItem<String>(
-                                                        value: element,
-                                                        child: Text(element),
-                                                      ),
-                                                )
-                                                .toList(),
-                                          ),
-
-                                    SizedBox(height: 15),
-                                    TextField(
-                                      controller: _recievedDateController,
-                                      readOnly: true,
-                                      decoration: InputDecoration(
-                                        labelText: "Date",
-                                        border: OutlineInputBorder(),
-                                      ),
-                                      onTap: () async {
-                                        DateTime? picked = await showDatePicker(
-                                          context: context,
-                                          initialDate: DateTime.now(),
-                                          firstDate: DateTime(2020),
-                                          lastDate: DateTime(2100),
-                                        );
-
-                                        if (picked != null) {
-                                          _recievedDateController.text =
-                                              "${picked.day}/${picked.month}/${picked.year}";
-                                        }
-                                      },
-                                    ),
-
-                                    const SizedBox(height: 16),
-
-                                    TextField(
-                                      controller: _recievedCartonController,
-                                      decoration: InputDecoration(
-                                        labelText: "Cartons",
-                                        border: OutlineInputBorder(),
-                                      ),
-                                      keyboardType: TextInputType.number,
-                                    ),
-                                    const SizedBox(height: 16),
-                                    TextField(
-                                      controller: _statusController,
-                                      decoration: InputDecoration(
-                                        labelText: "Status",
-                                        hintText: "Paid / UnPaid",
-                                        border: OutlineInputBorder(),
-                                      ),
-                                      keyboardType: TextInputType.text,
-                                    ),
-                                    const SizedBox(height: 16),
-
-                                    const SizedBox(height: 16),
-
-                                    const Spacer(),
-                                    AddButton(
-                                      fn: () {
-                                        if (receivedSelectedItem == null) {
-                                          ScaffoldMessenger.of(
-                                            context,
-                                          ).showSnackBar(
-                                            const SnackBar(
-                                              content: Text(
-                                                "Please select a packager",
-                                              ),
-                                            ),
-                                          );
-                                          Navigator.pop(context);
-                                          return;
-                                        }
-
-                                        _recievedItem(
-                                          _recievedDateController.text,
-                                          receivedSelectedItem!,
-                                          int.tryParse(
-                                                _recievedCartonController.text,
-                                              ) ??
-                                              0,
-                                          _statusController.text,
-                                          context,
-                                        );
-                                      },
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      );
-                    },
-                    child: Container(
-                      width: 150,
-                      height: 100,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(20),
-                        color: const Color.fromARGB(255, 39, 114, 32),
                       ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.call_received_outlined,
-                            color: Colors.white,
-                            size: 32,
-                          ),
-                          Text(
-                            "Recieved",
-                            style: TextStyle(color: Colors.white),
-                          ),
-                        ],
-                      ),
-                    ),
+                    ],
                   ),
+                  const SizedBox(height: 32),
+                  Text(
+                    "Actions",
+                    style: theme.textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _actionCard(
+                          title: "Send",
+                          icon: Icons.send_rounded,
+                          color: Colors.deepOrangeAccent,
+                          onTap: _showSendModal,
+                          theme: theme,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: _actionCard(
+                          title: "Receive",
+                          icon: Icons.call_received_rounded,
+                          color: const Color(0xFF43A047),
+                          onTap: _showReceiveModal,
+                          theme: theme,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 32),
+                  Text(
+                    "Quick Access",
+                    style: theme.textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 12),
+                  _quickAccessTile(
+                    title: "Inventory",
+                    icon: Icons.inventory_2_outlined,
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const Inventory()),
+                    ),
+                    theme: theme,
+                  ),
+                  _quickAccessTile(
+                    title: "Supplier",
+                    icon: Icons.local_shipping_outlined,
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const Supplier()),
+                    ),
+                    theme: theme,
+                  ),
+                  _quickAccessTile(
+                    title: "Packaging",
+                    icon: Icons.add_box_outlined,
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const Packager()),
+                    ),
+                    theme: theme,
+                  ),
+                  const SizedBox(height: 100), // Spacing for FAB
                 ],
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-              SizedBox(height: 10),
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20.0,
-                  vertical: 10,
+  Widget _actionCard({
+    required String title,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+    required ThemeData theme,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 100,
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: color.withOpacity(0.2), width: 1.5),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: color, size: 32),
+            const SizedBox(height: 8),
+            Text(
+              title,
+              style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _quickAccessTile({
+    required String title,
+    required IconData icon,
+    required VoidCallback onTap,
+    required ThemeData theme,
+  }) {
+    return Card(
+      elevation: 0,
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: Colors.grey.withOpacity(0.1)),
+      ),
+      child: ListTile(
+        onTap: onTap,
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.primary.withOpacity(0.05),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, color: theme.colorScheme.primary),
+        ),
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+        trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+      ),
+    );
+  }
+
+  void _showSendModal() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _modalWrapper(
+        title: "Deliver Item",
+        child: StatefulBuilder(
+          builder: (context, setModalState) => Column(
+            children: [
+              StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance.collection('Packaging').snapshots(),
+                builder: (context, snapshot) {
+                  final docs = snapshot.data?.docs.map((d) => d.id).toList() ?? [];
+                  if (selectedItem != null && !docs.contains(selectedItem)) {
+                    selectedItem = null;
+                  }
+                  return docs.isEmpty
+                      ? const Center(child: Padding(padding: EdgeInsets.all(20), child: Text("No Packager found")))
+                      : DropdownButtonFormField<String>(
+                          value: selectedItem,
+                          decoration: const InputDecoration(labelText: "Select Packager"),
+                          items: docs.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+                          onChanged: (val) => setModalState(() => selectedItem = val),
+                        );
+                }
+              ),
+              const SizedBox(height: 20),
+              TextField(
+                controller: _dateController,
+                readOnly: true,
+                decoration: const InputDecoration(
+                  labelText: "Date",
+                  prefixIcon: Icon(Icons.calendar_today_outlined),
                 ),
-                child: HomeButton(
-                  text: 'Inventory',
-                  fn: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => Inventory()),
-                    );
-                  },
+                onTap: () async {
+                  DateTime? picked = await showDatePicker(
+                    context: context,
+                    initialDate: DateTime.now(),
+                    firstDate: DateTime(2020),
+                    lastDate: DateTime(2100),
+                  );
+                  if (picked != null) {
+                    setModalState(() {
+                      _dateController.text = "${picked.day}/${picked.month}/${picked.year}";
+                    });
+                  }
+                },
+              ),
+              const SizedBox(height: 20),
+              StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance.collection('Inventory').snapshots(),
+                builder: (context, snapshot) {
+                  final ids = snapshot.data?.docs.map((d) => d.id).toList() ?? [];
+                  return Column(
+                    children: ids.map((docId) {
+                      if (!controllers.containsKey(docId)) {
+                        controllers[docId] = TextEditingController();
+                      }
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: TextField(
+                          controller: controllers[docId],
+                          decoration: InputDecoration(labelText: docId),
+                          keyboardType: TextInputType.number,
+                        ),
+                      );
+                    }).toList(),
+                  );
+                }
+              ),
+              const SizedBox(height: 24),
+              AddButton(
+                isLoading: _isSending,
+                text: "Confirm Delivery",
+                fn: () => _sendData(setModalState),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showReceiveModal() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _modalWrapper(
+        title: "Receive Item",
+        child: StatefulBuilder(
+          builder: (context, setModalState) => Column(
+            children: [
+              StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance.collection('Packaging').snapshots(),
+                builder: (context, snapshot) {
+                  final docs = snapshot.data?.docs.map((d) => d.id).toList() ?? [];
+                  if (receivedSelectedItem != null && !docs.contains(receivedSelectedItem)) {
+                    receivedSelectedItem = null;
+                  }
+                  return docs.isEmpty
+                      ? const Center(child: Padding(padding: EdgeInsets.all(20), child: Text("No Packager found")))
+                      : DropdownButtonFormField<String>(
+                          value: receivedSelectedItem,
+                          decoration: const InputDecoration(labelText: "Select Packager"),
+                          items: docs.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+                          onChanged: (val) => setModalState(() => receivedSelectedItem = val),
+                        );
+                }
+              ),
+              const SizedBox(height: 20),
+              TextField(
+                controller: _recievedDateController,
+                readOnly: true,
+                decoration: const InputDecoration(
+                  labelText: "Date",
+                  prefixIcon: Icon(Icons.calendar_today_outlined),
+                ),
+                onTap: () async {
+                  DateTime? picked = await showDatePicker(
+                    context: context,
+                    initialDate: DateTime.now(),
+                    firstDate: DateTime(2020),
+                    lastDate: DateTime(2100),
+                  );
+                  if (picked != null) {
+                    setModalState(() {
+                      _recievedDateController.text = "${picked.day}/${picked.month}/${picked.year}";
+                    });
+                  }
+                },
+              ),
+              const SizedBox(height: 20),
+              TextField(
+                controller: _recievedCartonController,
+                decoration: const InputDecoration(labelText: "Cartons"),
+                keyboardType: TextInputType.number,
+              ),
+              const SizedBox(height: 20),
+              TextField(
+                controller: _statusController,
+                decoration: const InputDecoration(
+                  labelText: "Status",
+                  hintText: "e.g. Paid / UnPaid",
                 ),
               ),
-
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20.0,
-                  vertical: 10,
-                ),
-                child: HomeButton(
-                  text: 'Supplier',
-                  fn: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => Supplier()),
-                    );
-                  },
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20.0,
-                  vertical: 10,
-                ),
-                child: HomeButton(
-                  text: 'Packaging',
-                  fn: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => Packager()),
-                    );
-                  },
+              const SizedBox(height: 32),
+              AddButton(
+                isLoading: _isReceiving,
+                text: "Record Receipt",
+                fn: () => _recievedItem(
+                  _recievedDateController.text,
+                  receivedSelectedItem!,
+                  int.tryParse(_recievedCartonController.text) ?? 0,
+                  _statusController.text,
+                  context,
+                  setModalState,
                 ),
               ),
             ],
@@ -853,36 +645,94 @@ class _HomeState extends State<Home> {
     );
   }
 
+  Widget _modalWrapper({required String title, required Widget child}) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+        top: 16,
+        left: 20,
+        right: 20,
+      ),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 24),
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Text(title, style: theme.textTheme.titleLarge),
+            const SizedBox(height: 24),
+            child,
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _homeContainer(
-    String text,
+    String title,
     String cartons,
-    String peices,
+    String pieces,
     Color color,
     BuildContext context,
   ) {
     return Container(
+      height: 160,
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: color,
-        border: Border.all(width: 1, color: color),
-        borderRadius: BorderRadius.circular(15),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withOpacity(0.1), width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
-      width: MediaQuery.of(context).size.width / 2.1,
-      padding: EdgeInsets.all(20),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
+          Icon(Icons.inventory_rounded, color: color, size: 28),
+          const SizedBox(height: 12),
           Text(
-            text,
+            title,
             style: TextStyle(
               fontWeight: FontWeight.bold,
-              fontSize: 18,
-              color: Colors.white,
+              fontSize: 16,
+              color: Colors.grey[800],
             ),
           ),
-          SizedBox(height: 10),
-          Text('Cartons: $cartons', style: TextStyle(color: Colors.white)),
-          Text('Peices:  $peices', style: TextStyle(color: Colors.white)),
+          const SizedBox(height: 4),
+          Text(
+            "$cartons Cartons",
+            style: const TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 14,
+              color: Colors.grey,
+            ),
+          ),
+          Text(
+            "$pieces Pieces",
+            style: TextStyle(
+              fontSize: 12,
+              color: color,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         ],
       ),
     );
@@ -894,9 +744,9 @@ class _HomeState extends State<Home> {
     int carton,
     String status,
     BuildContext context,
+    StateSetter setModalState,
   ) async {
     if (name.isEmpty) {
-      Navigator.pop(context);
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text("Invalid packager name")));
@@ -904,13 +754,13 @@ class _HomeState extends State<Home> {
     }
 
     if (carton <= 0) {
-      Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Carton must be greater than 0")),
       );
       return;
     }
 
+    setModalState(() => _isReceiving = true);
     try {
       DocumentReference packagingRef = FirebaseFirestore.instance
           .collection("Packaging")
@@ -962,6 +812,8 @@ class _HomeState extends State<Home> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text("Error: ${e.toString()}")));
+    } finally {
+      setModalState(() => _isReceiving = false);
     }
   }
 }

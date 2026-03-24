@@ -1,76 +1,40 @@
 import 'package:flutter/material.dart';
 
 class AddButton extends StatelessWidget {
-   AddButton({super.key, required this.fn});
+  const AddButton({super.key, required this.fn, this.isLoading = false, this.text = "Confirm"});
   final VoidCallback? fn;
-  
+  final bool isLoading;
+  final String text;
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: fn,
-      child: Container(
-        width: double.infinity,
-        height: 50,
-        margin: EdgeInsets.symmetric(horizontal: 10),
-        decoration: BoxDecoration(
-          color: const Color.fromRGBO(84, 119, 146, 1),
-          borderRadius: BorderRadius.circular(20),
+    return SizedBox(
+      width: double.infinity,
+      height: 56,
+      child: ElevatedButton(
+        onPressed: isLoading ? null : fn,
+        style: ElevatedButton.styleFrom(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
         ),
-        child: Center(
-          child:  Text(
-                  "Add",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
-                  ),
+        child: isLoading
+            ? const SizedBox(
+                height: 24,
+                width: 24,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                 ),
-        ),
+              )
+            : Text(
+                text,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
       ),
     );
   }
 }
-// import 'package:flutter/material.dart';
-
-// class AddButton extends StatelessWidget {
-//   AddButton({super.key, required this.fn, this.isLoading});
-//   final VoidCallback? fn;
-//   final bool? isLoading=false;
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return GestureDetector(
-//       onTap: isLoading! ? null : fn, // Disable tap when loading
-//       child: Container(
-//         width: double.infinity,
-//         height: 50,
-//         margin: const EdgeInsets.symmetric(horizontal: 10),
-//         decoration: BoxDecoration(
-//           color: const Color.fromRGBO(84, 119, 146, 1),
-//           borderRadius: BorderRadius.circular(20),
-//         ),
-//         child: Center(
-//           child: isLoading!
-//               ? SizedBox(
-//                   height: 24,
-//                   width: 24,
-//                   child: CircularProgressIndicator(
-//                     color: Colors.white, // Color of the progress indicator
-//                     strokeWidth: 3,
-//                   ),
-//                 )
-//               : Text(
-//                   "Add",
-//                   style: TextStyle(
-//                     color: Colors.white,
-//                     fontWeight: FontWeight.bold,
-//                     fontSize: 18,
-//                   ),
-//                 ),
-//         ),
-//       ),
-//     );
-//   }
-// }
-
